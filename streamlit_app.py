@@ -20,7 +20,7 @@ st.markdown("---")
 # =========================================
 @st.cache_data(show_spinner="Đang tải dữ liệu tốc độ cao... 🚀")
 def load_data():
-    file_path = "dashboard_data.parquet"
+    file_path = r"D:\FPT\Spring 2026\DAP391m\DAP-Project\dashboard_app\accidents-predict\dashboard_data.parquet"
     df = pd.read_parquet(file_path)
 
     # Quy đổi và làm sạch (từ code gốc của bạn)
@@ -46,6 +46,8 @@ def load_data():
 
     # Tạo cột Year_Month để làm biểu đồ đường
     if 'Month' in df.columns:
+        # Ép Month sang số nguyên để mất đuôi .0, sau đó mới ghép chuỗi
+        df['Month'] = df['Month'].astype(int) 
         df['Year_Month'] = df['Year'].astype(str) + '-' + df['Month'].astype(str).str.zfill(2)
         df['Year_Month'] = pd.to_datetime(df['Year_Month']) # Ép sang Datetime
 
