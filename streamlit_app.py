@@ -74,7 +74,6 @@ if filtered_df.empty:
     st.warning("Không có dữ liệu phù hợp với bộ lọc.")
     st.stop()
 
-# --- TÍNH NĂNG MỚI: NÚT TẢI CSV ---
 st.sidebar.markdown("---")
 csv_data = filtered_df.to_csv(index=False).encode('utf-8')
 st.sidebar.download_button(
@@ -90,6 +89,7 @@ st.sidebar.download_button(
 st.title("🌐 US Traffic Accidents Analysis")
 st.markdown("---")
 
+# 4.1 KPIs
 k1, k2, k3, k4 = st.columns(4)
 total_count = len(filtered_df)
 k1.metric("Total Accidents", f"{total_count:,}")
@@ -98,18 +98,65 @@ k3.metric("Cities Covered", f"{filtered_df['City'].nunique():,}")
 k4.metric("States Affected", f"{filtered_df['State'].nunique()}")
 
 st.markdown("---")
+
+# =========================================
+# 5. BIỂU ĐỒ TƯƠNG TÁC (CLICK ĐỂ LỌC BẢN ĐỒ)
+# =========================================
+st.subheader("🖱️ Interactive Filters (Click on charts to filter the map)")
+st.caption("Mẹo: Bạn có thể click vào các cột trên biểu đồ bên dưới để lọc trực tiếp dữ liệu trên Bản đồ.")
+
+g1, g2 = st.columns(2)
+with g1:
+    fig_hour = px.histogram(filtered_df, x='Hour', nbins=24, title="Accidents by Hour", color_discrete_sequence=['#636EFA'])
+    fig_hour.update_layout(xaxis_title="Hour (0-23)", yaxis_title="Count", bargap=0.1)
+    # on_select="rerun" giúp web load lại khi user click vào biểu đồ
+    hour_event = st.plotly_chart(fig_hour, use_container_width=True, on_select="rerun", selection_mode="points", key="hour_chart")
+
+with g2:
+    if 'Weather_Condition' in filtered_df.columns:
+        top_weather = filtered_df['Weather_Condition'].value_counts().nlargest(15).index
+        weather_df = filtered_df[filtered_df['Weather_Condition'].isin(top_weather)]
+        fig_weather = px.histogram(weather_df, x='Weather_Condition', title="Accidents by Weather", color_discrete_sequence=['#EF553B']).update_xaxes(categoryorder='total descending')
+        fig_weather.update_layout(xaxis_title="Weather Condition", yaxis_title="Count")
+        weather_event = st.plotly_chart(fig_weather, use_container_width=True, on_select="rerun", selection_mode="points", key="weather_chart")
+    else:
+        weather_event = None
+
+# --- XỬ LÝ DỮ LIỆU ĐƯỢC CLICK ---
+# Lấy giá trị user đã click trên biểu đồ Hour
+selected_hours = [point["x"] for point in hour_event.selection.points] if hour_event and hour_event.selection.points else []
+# Lấy giá trị user đã click trên biểu đồ Weather
+selected_weathers = [point["x"] for point in weather_event.selection.points] if weather_event and weather_event.selection.points else []
+
+# Lọc dữ liệu cho Bản đồ dựa trên sự kiện click
+map_df = filtered_df.copy()
+if selected_hours:
+    map_df = map_df[map_df['Hour'].isin(selected_hours)]
+if selected_weathers:
+    map_df = map_df[map_df['Weather_Condition'].isin(selected_weathers)]
+
+st.markdown("---")
+
+# =========================================
+# 6. BẢN ĐỒ KẾT QUẢ ĐÃ LỌC
+# =========================================
 st.subheader("🗺️ Accident Location Map")
 
 col_map_type, col_slider = st.columns([1, 2])
 with col_map_type:
-    # --- TÍNH NĂNG MỚI: THÊM ANIMATED MAP ---
     map_style_choice = st.radio("Map Type:", ["Scatter Map", "Heatmap", "Animated (By Hour)"], horizontal=True)
 with col_slider:
-    max_allowed = min(200000, total_count) if total_count > 5000 else total_count
-    def_val = min(30000, total_count)
-    map_points = st.slider("Points to display:", min_value=1000, max_value=max_allowed, value=def_val, step=1000)
+    current_total = len(map_df)
+    max_allowed = min(200000, current_total) if current_total > 5000 else current_total
+    def_val = min(30000, current_total)
+    
+    if current_total == 0:
+        st.warning("Không có tai nạn nào thỏa mãn điều kiện bạn vừa click!")
+        st.stop()
+        
+    map_points = st.slider("Points to display:", min_value=1000 if current_total > 1000 else current_total, max_value=max_allowed, value=def_val, step=1000)
 
-map_sample = filtered_df.sample(n=map_points, random_state=42)
+map_sample = map_df.sample(n=map_points, random_state=42)
 
 if map_style_choice == "Scatter Map":
     fig_map = px.scatter_mapbox(
@@ -125,11 +172,10 @@ elif map_style_choice == "Heatmap":
         color_continuous_scale="Reds"
     )
 else:
-    # Bản đồ Animation chạy theo giờ
-    map_sample_anim = map_sample.sort_values("Hour") # Phải sort dữ liệu trước khi chạy animation
+    map_sample_anim = map_sample.sort_values("Hour") 
     fig_map = px.scatter_mapbox(
         map_sample_anim, lat="Start_Lat", lon="Start_Lng", color="Severity",
-        animation_frame="Hour", # Thuộc tính tạo thanh play/pause
+        animation_frame="Hour", 
         color_discrete_map={1: '#f0f0f0', 2: '#fee0d2', 3: '#fc9272', 4: '#de2d26'},
         size_max=10, zoom=4.0, mapbox_style="open-street-map", height=650, center=dict(lat=39.8, lon=-98.5)
     )
@@ -139,35 +185,20 @@ st.plotly_chart(fig_map, use_container_width=True, config={'scrollZoom': True})
 
 st.markdown("---")
 
-# 5. BIỂU ĐỒ XU HƯỚNG
+# =========================================
+# 7. BIỂU ĐỒ XU HƯỚNG
+# =========================================
 st.subheader("📈 Accident Trends over Time")
 plot_type = st.radio("Show trend by:", ["Total", "Top 10 Cities"], horizontal=True)
 
-if 'Year_Month' in filtered_df.columns:
+if 'Year_Month' in map_df.columns:
     if plot_type == "Total":
-        trend_df = filtered_df.groupby('Year_Month').size().reset_index(name='Count')
+        trend_df = map_df.groupby('Year_Month').size().reset_index(name='Count')
         fig_trend = px.line(trend_df, x='Year_Month', y='Count', title="Total Accidents Trend")
     else:
-        top_cities = filtered_df['City'].value_counts().nlargest(10).index
-        city_trend_df = filtered_df[filtered_df['City'].isin(top_cities)].groupby(['Year_Month', 'City']).size().reset_index(name='Count')
+        top_cities = map_df['City'].value_counts().nlargest(10).index
+        city_trend_df = map_df[map_df['City'].isin(top_cities)].groupby(['Year_Month', 'City']).size().reset_index(name='Count')
         fig_trend = px.line(city_trend_df, x='Year_Month', y='Count', color='City', title="Top 10 Cities Trend")
     
     fig_trend.update_layout(height=450, xaxis_title="Time", yaxis_title="Number of Accidents")
     st.plotly_chart(fig_trend, use_container_width=True)
-
-st.markdown("---")
-
-# 6. BIỂU ĐỒ PHÂN TÍCH PHỤ
-st.subheader("📊 Supplementary Analysis")
-g1, g2 = st.columns(2)
-with g1:
-    fig_hour = px.histogram(filtered_df, x='Hour', nbins=24, title="Accidents by Hour of Day", color_discrete_sequence=['#636EFA'])
-    fig_hour.update_layout(xaxis_title="Hour (0-23)", yaxis_title="Count", bargap=0.1)
-    st.plotly_chart(fig_hour, use_container_width=True)
-with g2:
-    if 'Weather_Condition' in filtered_df.columns:
-        top_weather = filtered_df['Weather_Condition'].value_counts().nlargest(15).index
-        weather_df = filtered_df[filtered_df['Weather_Condition'].isin(top_weather)]
-        fig_weather = px.histogram(weather_df, x='Weather_Condition', title="Accidents by Weather Condition (Top 15)", color_discrete_sequence=['#EF553B']).update_xaxes(categoryorder='total descending')
-        fig_weather.update_layout(xaxis_title="Weather Condition", yaxis_title="Count")
-        st.plotly_chart(fig_weather, use_container_width=True)
