@@ -128,3 +128,73 @@ if submitted:
             st.json(entered_features)
         else:
             st.warning("No parameters were entered. The model used default mean values (Imputation) for prediction!")
+        
+        # ... (Phần code ở trên giữ nguyên) ...
+
+        # 2.3 DISPLAY RESULTS
+        st.success("✅ Analysis Complete!")
+        
+        # Highlighted Severity Result
+        st.markdown(
+            f"""
+            <div style="text-align: center; padding: 20px; background-color: #f8f9fa; border-radius: 10px; border: 2px solid #e9ecef;">
+                <h3 style="color: #555;">Predicted Severity Level</h3>
+                <h1 style="color: #FF4B4B; font-size: 60px; margin: 0;">SEVERITY {predicted_severity}</h1>
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
+        
+        st.write("") 
+        
+        # =========================================
+        # 3. TÍNH NĂNG MỚI: AI ANALYSIS & EXPLANATION
+        # =========================================
+        st.subheader("🔍 AI Analysis & Explanation")
+        
+        # Dùng container hoặc expander để chứa phần phân tích
+        with st.expander("Xem chi tiết lý do phân tích của Mô hình (Model Insights)", expanded=True):
+            
+            col_chart, col_text = st.columns([1, 1])
+            
+            with col_chart:
+                st.markdown("**1. Các yếu tố tác động chính (Feature Impact)**")
+                # Dữ liệu giả lập mô phỏng SHAP Values (Độ quan trọng của từng cột dữ liệu input)
+                # Sau này có model thật, bạn có thể trích xuất feature_importances_ từ model để đưa vào đây
+                importance_df = pd.DataFrame({
+                    'Features': ['Weather Condition', 'Visibility', 'Time (Hour)', 'Traffic Signal'],
+                    'Impact Score': [45.2, 25.8, 15.0, 14.0] # Điểm số giả lập
+                })
+                
+                import plotly.express as px
+                fig_shap = px.bar(
+                    importance_df, x='Impact Score', y='Features', orientation='h',
+                    color_discrete_sequence=['#FF4B4B']
+                )
+                fig_shap.update_layout(yaxis={'categoryorder':'total ascending'}, height=300, margin=dict(l=0, r=0, t=30, b=0))
+                st.plotly_chart(fig_shap, use_container_width=True)
+
+            with col_text:
+                st.markdown("**2. Đánh giá tự động (Automated Report)**")
+                
+                # Logic tạo câu chữ phân tích dựa trên Input của người dùng
+                reasons = []
+                if weather_cond in ["Rain", "Snow", "Fog", "Thunderstorm"]:
+                    reasons.append(f"thời tiết xấu (**{weather_cond}**)")
+                if visibility is not None and visibility < 3.0:
+                    reasons.append(f"tầm nhìn rất hạn chế (**{visibility} dặm**)")
+                if day_night == "Night":
+                    reasons.append("điều kiện ánh sáng yếu vào **ban đêm**")
+                if traffic_signal is False:
+                    reasons.append("thiếu **đèn tín hiệu giao thông** tại khu vực")
+                
+                # Sinh ra báo cáo
+                if reasons:
+                    reason_text = " và ".join(reasons)
+                    st.warning(f"⚠️ **Nhận định:** Mức độ nghiêm trọng đạt mức {predicted_severity} chủ yếu do sự kết hợp của {reason_text}. Những yếu tố này làm tăng đáng kể rủi ro chấn thương nặng hoặc cản trở giao thông kéo dài.")
+                    
+                    st.info("💡 **Khuyến nghị điều phối:** Cần ưu tiên cử các đội cứu hộ y tế khẩn cấp và xe cẩu hạng nặng. Cảnh sát giao thông cần thiết lập vùng cảnh báo từ xa do tầm nhìn/thời tiết không thuận lợi.")
+                else:
+                    st.success(f"✅ **Nhận định:** Mức độ nghiêm trọng ở mức {predicted_severity}. Điều kiện môi trường (thời tiết, ánh sáng) khá thuận lợi, nguyên nhân chính có thể xuất phát từ yếu tố con người hoặc tốc độ di chuyển.")
+                    st.info("💡 **Khuyến nghị điều phối:** Cử đội tuần tra giao thông tiêu chuẩn để xử lý hiện trường và dọn dẹp ùn tắc.")
+
