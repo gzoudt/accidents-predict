@@ -8,13 +8,37 @@ import plotly.express as px
 # =========================================
 st.set_page_config(page_title="US Accidents Analysis", layout="wide", page_icon="🚗")
 
-# --- CSS Injection: Tạo Background chuyên nghiệp ---
+# --- CSS Injection: Phối màu Trắng - Vàng Đồng (Gold) ---
 st.markdown("""
     <style>
-    /* Đổi màu nền toàn trang thành tối chuyên nghiệp */
-    .stApp { background-color: #0E1117; color: #FAFAFA; }
-    /* Chỉnh màu cho Sidebar */
-    [data-testid="stSidebar"] { background-color: #1E1E2E; }
+    /* 1. Nền toàn trang và màu chữ cơ bản (Trắng) */
+    .stApp { background-color: #0E1117; }
+    html, body, [class*="css"] { color: #FFFFFF !important; }
+    
+    /* 2. Nền Sidebar */
+    [data-testid="stSidebar"] { background-color: #1a1c23; }
+    
+    /* 3. Màu Vàng Đồng (Gold) cho các Tiêu đề (Headers) */
+    h1, h2, h3, h4, h5, h6 { color: #FFD700 !important; }
+    
+    /* 4. Tùy chỉnh các con số Metric (KPIs) */
+    [data-testid="stMetricLabel"] { 
+        color: #E0E0E0 !important; /* Màu xám sáng cho tên chỉ số */
+        font-size: 16px;
+    }
+    [data-testid="stMetricValue"] { 
+        color: #FFD700 !important; /* Màu vàng đồng cho con số */
+        font-weight: bold;
+    }
+    
+    /* 5. Chữ của các nhãn (Labels) như Slider, Radio, Multiselect */
+    .st-bo, .st-bp, .st-bq, label { color: #FFFFFF !important; }
+    
+    /* 6. Chỉnh màu cho vạch Slider sang Vàng đồng cho tone-sur-tone */
+    .stSlider [data-baseweb="slider"] div { background-color: #FFD700 !important; }
+    
+    /* 7. Đường gạch ngang phân cách (Divider) mờ hơn cho sang trọng */
+    hr { border-bottom: 1px solid #333333 !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -139,5 +163,7 @@ st.plotly_chart(fig_map, use_container_width=True, config={'scrollZoom': True})
 st.markdown("---")
 if 'Year_Month' in filtered_df.columns:
     trend_df = filtered_df.groupby('Year_Month').size().reset_index(name='Count')
-    fig_trend = px.line(trend_df, x='Year_Month', y='Count', title="Accidents Trend")
+    
+    # Cập nhật màu đường biểu đồ trend thành Vàng đồng
+    fig_trend = px.line(trend_df, x='Year_Month', y='Count', title="Accidents Trend", color_discrete_sequence=['#FFD700'])
     st.plotly_chart(fig_trend, use_container_width=True)
