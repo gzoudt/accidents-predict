@@ -163,7 +163,6 @@ with col_slider:
 
 map_sample = map_df.sample(n=map_points, random_state=42)
 
-# VẼ BẢN ĐỒ
 if map_style_choice == "Scatter Map":
     fig_map = px.scatter_mapbox(
         map_sample, lat="Start_Lat", lon="Start_Lng", color="Severity",
@@ -171,24 +170,31 @@ if map_style_choice == "Scatter Map":
         size_max=10, zoom=4.0, mapbox_style="open-street-map", height=650, center=dict(lat=39.8, lon=-98.5),
         hover_name="State_Full_Name", hover_data={"City": True, "Year": True, "Severity": True, "Start_Lat": False, "Start_Lng": False}
     )
+    # Scatter map bình thường ép lề dưới = 0 cho đẹp
+    fig_map.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+
 elif map_style_choice == "Heatmap":
     fig_map = px.density_mapbox(
         map_sample, lat='Start_Lat', lon='Start_Lng', z='Severity', radius=8,
         center=dict(lat=39.8, lon=-98.5), zoom=4.0, mapbox_style="open-street-map", height=650,
         color_continuous_scale="Reds"
     )
+    # Heatmap ép lề dưới = 0
+    fig_map.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+
 else:
-    # --- XỬ LÝ ANIMATED MAP ---
-    # Sắp xếp giờ từ 0 -> 23 để thanh animation chạy mượt mà
+    # --- BẢN ĐỒ ANIMATION ---
     map_sample_anim = map_sample.sort_values("Hour") 
     fig_map = px.scatter_mapbox(
         map_sample_anim, lat="Start_Lat", lon="Start_Lng", color="Severity",
-        animation_frame="Hour", # Thuộc tính then chốt tạo nút Play
+        animation_frame="Hour", 
         color_discrete_map={1: '#f0f0f0', 2: '#fee0d2', 3: '#fc9272', 4: '#de2d26'},
         size_max=10, zoom=4.0, mapbox_style="open-street-map", height=650, center=dict(lat=39.8, lon=-98.5)
     )
+    # Quan trọng: Để lề dưới b=80 để có không gian chứa nút Play và Slider thời gian
+    fig_map.update_layout(margin={"r":0,"t":0,"l":0,"b":80}) 
 
-fig_map.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+st.plotly_chart(fig_map, use_container_width=True, config={'scrollZoom': True})
 # Bật cuộn chuột để zoom bản đồ
 st.plotly_chart(fig_map, use_container_width=True, config={'scrollZoom': True})
 
