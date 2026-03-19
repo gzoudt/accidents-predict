@@ -192,7 +192,7 @@ else:
         size_max=10, zoom=4.0, mapbox_style="open-street-map", height=650, center=dict(lat=39.8, lon=-98.5)
     )
     # Quan trọng: Để lề dưới b=80 để có không gian chứa nút Play và Slider thời gian
-    fig_map.update_layout(margin={"r":0,"t":0,"l":0,"b":80}) 
+fig_map.update_layout(margin={"r":0,"t":0,"l":0,"b":80}) 
 
 st.plotly_chart(fig_map, use_container_width=True, config={'scrollZoom': True})
 # Bật cuộn chuột để zoom bản đồ
