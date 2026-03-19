@@ -2,5 +2,5 @@ streamlit
 pandas
 numpy
 plotly
-pyarrow>=15.0.0
-fastparquet
+pyarrow
+setuptools
