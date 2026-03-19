@@ -4,7 +4,7 @@ import numpy as np
 import plotly.express as px
 import datetime
 
-# Cấu hình trang
+# Cấu hình trang (Sạch hoàn toàn, không có CSS)
 st.set_page_config(page_title="Predict Model", layout="wide", page_icon="🔮")
 
 st.title("🔮 Traffic Accident Prediction Model")
@@ -34,7 +34,7 @@ if st.button("🚀 Chạy mô hình dự đoán (Mock)", type="primary"):
         fig_pred = px.scatter_mapbox(
             df_pred, lat="Lat", lon="Lng", color="Risk(%)",
             color_continuous_scale="Reds", size="Risk(%)", size_max=15,
-            zoom=3.8, mapbox_style="open-street-map", # Trả về bản đồ nền sáng
+            zoom=3.8, mapbox_style="open-street-map", # Bản đồ sáng
             center=dict(lat=39.8, lon=-98.5), height=550
         )
         fig_pred.update_layout(margin={"r":0,"t":0,"l":0,"b":0})

@@ -4,11 +4,11 @@ import numpy as np
 import plotly.express as px
 
 # =========================================
-# 1. CẤU HÌNH TRANG & THEME
+# 1. CẤU HÌNH TRANG
 # =========================================
 st.set_page_config(page_title="US Accidents Analysis", layout="wide", page_icon="🚗")
 
-# Trả biểu đồ về nền trắng chuẩn như ban đầu
+# Trả biểu đồ về nền trắng chuẩn ban đầu
 px.defaults.template = "plotly_white"
 
 # Từ điển ánh xạ
