@@ -2,7 +2,7 @@
 
 A simple Streamlit app showing the US accidents dashboard and predict model.
 
-[![Open in Streamlit]((https://accident-predict-dashboard.streamlit.app/)/)
+[![Open in Streamlit](([https://accident-predict-dashboard.streamlit.app/](https://accident-predict-dashboard.streamlit.app/))/)
 
 ### How to run it on your own machine
 
