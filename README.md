@@ -1,4 +1,4 @@
-# 🚗: US accidents Dashboard
+# 🚗: US accidents Dashboard & Predict Model
 
 A simple Streamlit app showing the US accidents dashboard and predict model.
 
