@@ -7,11 +7,8 @@ import plotly.express as px
 # 1. CẤU HÌNH TRANG VÀ GIAO DIỆN
 # =========================================
 st.set_page_config(page_title="US Accidents Analysis", layout="wide", page_icon="🚗")
-
-# Đảm bảo biểu đồ luôn dùng nền trắng sạch sẽ
 px.defaults.template = "plotly_white"
 
-# Từ điển ánh xạ mã bang -> tên đầy đủ
 US_STATE_NAMES = {
     'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas', 'CA': 'California',
     'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware', 'FL': 'Florida', 'GA': 'Georgia',
@@ -27,7 +24,7 @@ US_STATE_NAMES = {
 }
 
 # =========================================
-# 2. LOAD DATA TỐI ƯU HÓA
+# 2. LOAD DATA
 # =========================================
 @st.cache_data(show_spinner="Đang tải dữ liệu... 🚀")
 def load_data():
@@ -57,7 +54,7 @@ def load_data():
 df = load_data()
 
 # =========================================
-# 3. BỘ LỌC SIDEBAR & TẢI FILE CSV
+# 3. BỘ LỌC SIDEBAR & NÚT TẢI CSV
 # =========================================
 st.sidebar.title("🛠️ Filter Panels")
 min_year, max_year = int(df["Year"].min()), int(df["Year"].max())
@@ -69,7 +66,6 @@ selected_sev = st.sidebar.multiselect("⚠️ Severity", severity_opts, default=
 available_states = sorted(df['State'].unique())
 selected_states = st.sidebar.multiselect("📍 States", options=available_states, default=available_states)
 
-# Xử lý lọc dữ liệu theo Sidebar
 filtered_df = df[(df["Year"] >= start_year) & (df["Year"] <= end_year)]
 if selected_sev: filtered_df = filtered_df[filtered_df['Severity'].isin(selected_sev)]
 if selected_states: filtered_df = filtered_df[filtered_df['State'].isin(selected_states)]
@@ -78,7 +74,6 @@ if filtered_df.empty:
     st.warning("Không có dữ liệu phù hợp với bộ lọc.")
     st.stop()
 
-# Nút tải dữ liệu hiện tại
 st.sidebar.markdown("---")
 csv_data = filtered_df.to_csv(index=False).encode('utf-8')
 st.sidebar.download_button(
@@ -89,12 +84,11 @@ st.sidebar.download_button(
 )
 
 # =========================================
-# 4. GIAO DIỆN CHÍNH (PAGE 1)
+# 4. GIAO DIỆN CHÍNH (KPIs)
 # =========================================
 st.title("🌐 US Traffic Accidents Analysis")
 st.markdown("---")
 
-# 4.1 KPIs
 k1, k2, k3, k4 = st.columns(4)
 total_count = len(filtered_df)
 k1.metric("Total Accidents", f"{total_count:,}")
@@ -115,7 +109,6 @@ g1, g2 = st.columns(2)
 with g1:
     fig_hour = px.histogram(filtered_df, x='Hour', nbins=24, title="Accidents by Hour", color_discrete_sequence=['#636EFA'])
     fig_hour.update_layout(xaxis_title="Hour (0-23)", yaxis_title="Count", bargap=0.1)
-    # Lấy sự kiện click từ biểu đồ Hour
     hour_event = st.plotly_chart(fig_hour, use_container_width=True, on_select="rerun", selection_mode="points", key="hour_chart")
 
 with g2:
@@ -124,31 +117,27 @@ with g2:
         weather_df = filtered_df[filtered_df['Weather_Condition'].isin(top_weather)]
         fig_weather = px.histogram(weather_df, x='Weather_Condition', title="Accidents by Weather", color_discrete_sequence=['#EF553B']).update_xaxes(categoryorder='total descending')
         fig_weather.update_layout(xaxis_title="Weather Condition", yaxis_title="Count")
-        # Lấy sự kiện click từ biểu đồ Weather
         weather_event = st.plotly_chart(fig_weather, use_container_width=True, on_select="rerun", selection_mode="points", key="weather_chart")
     else:
         weather_event = None
 
-# --- Xử lý dữ liệu sau khi Click ---
+# Lọc dữ liệu dựa trên click
 selected_hours = [point["x"] for point in hour_event.selection.points] if hour_event and hour_event.selection.points else []
 selected_weathers = [point["x"] for point in weather_event.selection.points] if weather_event and weather_event.selection.points else []
 
 map_df = filtered_df.copy()
-if selected_hours:
-    map_df = map_df[map_df['Hour'].isin(selected_hours)]
-if selected_weathers:
-    map_df = map_df[map_df['Weather_Condition'].isin(selected_weathers)]
+if selected_hours: map_df = map_df[map_df['Hour'].isin(selected_hours)]
+if selected_weathers: map_df = map_df[map_df['Weather_Condition'].isin(selected_weathers)]
 
 st.markdown("---")
 
 # =========================================
-# 6. BẢN ĐỒ KẾT QUẢ
+# 6. BẢN ĐỒ KẾT QUẢ ĐÃ SỬA LỖI MARGIN
 # =========================================
 st.subheader("🗺️ Accident Location Map")
 
 col_map_type, col_slider = st.columns([1, 2])
 with col_map_type:
-    # 3 chế độ Bản đồ
     map_style_choice = st.radio("Map Type:", ["Scatter Map", "Heatmap", "Animated (By Hour)"], horizontal=True)
 with col_slider:
     current_total = len(map_df)
@@ -170,7 +159,6 @@ if map_style_choice == "Scatter Map":
         size_max=10, zoom=4.0, mapbox_style="open-street-map", height=650, center=dict(lat=39.8, lon=-98.5),
         hover_name="State_Full_Name", hover_data={"City": True, "Year": True, "Severity": True, "Start_Lat": False, "Start_Lng": False}
     )
-    # Scatter map bình thường ép lề dưới = 0 cho đẹp
     fig_map.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
 
 elif map_style_choice == "Heatmap":
@@ -179,11 +167,10 @@ elif map_style_choice == "Heatmap":
         center=dict(lat=39.8, lon=-98.5), zoom=4.0, mapbox_style="open-street-map", height=650,
         color_continuous_scale="Reds"
     )
-    # Heatmap ép lề dưới = 0
     fig_map.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
 
 else:
-    # --- BẢN ĐỒ ANIMATION ---
+    # Bản đồ Animated - lề dưới (b) được đẩy lên 80 để chừa chỗ cho thanh thời gian
     map_sample_anim = map_sample.sort_values("Hour") 
     fig_map = px.scatter_mapbox(
         map_sample_anim, lat="Start_Lat", lon="Start_Lng", color="Severity",
@@ -191,11 +178,8 @@ else:
         color_discrete_map={1: '#f0f0f0', 2: '#fee0d2', 3: '#fc9272', 4: '#de2d26'},
         size_max=10, zoom=4.0, mapbox_style="open-street-map", height=650, center=dict(lat=39.8, lon=-98.5)
     )
-    # Quan trọng: Để lề dưới b=80 để có không gian chứa nút Play và Slider thời gian
-fig_map.update_layout(margin={"r":0,"t":0,"l":0,"b":80}) 
+    fig_map.update_layout(margin={"r":0,"t":0,"l":0,"b":80})
 
-st.plotly_chart(fig_map, use_container_width=True, config={'scrollZoom': True})
-# Bật cuộn chuột để zoom bản đồ
 st.plotly_chart(fig_map, use_container_width=True, config={'scrollZoom': True})
 
 st.markdown("---")
