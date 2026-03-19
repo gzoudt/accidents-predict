@@ -7,11 +7,8 @@ import plotly.express as px
 # 1. CẤU HÌNH TRANG
 # =========================================
 st.set_page_config(page_title="US Accidents Analysis", layout="wide", page_icon="🚗")
-
-# Trả biểu đồ về nền trắng chuẩn ban đầu
 px.defaults.template = "plotly_white"
 
-# Từ điển ánh xạ
 US_STATE_NAMES = {
     'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas', 'CA': 'California',
     'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware', 'FL': 'Florida', 'GA': 'Georgia',
@@ -57,7 +54,7 @@ def load_data():
 df = load_data()
 
 # =========================================
-# 3. BỘ LỌC SIDEBAR
+# 3. BỘ LỌC SIDEBAR & TẢI DỮ LIỆU
 # =========================================
 st.sidebar.title("🛠️ Filter Panels")
 min_year, max_year = int(df["Year"].min()), int(df["Year"].max())
@@ -69,7 +66,6 @@ selected_sev = st.sidebar.multiselect("⚠️ Severity", severity_opts, default=
 available_states = sorted(df['State'].unique())
 selected_states = st.sidebar.multiselect("📍 States", options=available_states, default=available_states)
 
-# Áp dụng bộ lọc
 filtered_df = df[(df["Year"] >= start_year) & (df["Year"] <= end_year)]
 if selected_sev: filtered_df = filtered_df[filtered_df['Severity'].isin(selected_sev)]
 if selected_states: filtered_df = filtered_df[filtered_df['State'].isin(selected_states)]
@@ -78,13 +74,22 @@ if filtered_df.empty:
     st.warning("Không có dữ liệu phù hợp với bộ lọc.")
     st.stop()
 
+# --- TÍNH NĂNG MỚI: NÚT TẢI CSV ---
+st.sidebar.markdown("---")
+csv_data = filtered_df.to_csv(index=False).encode('utf-8')
+st.sidebar.download_button(
+    label="📥 Tải dữ liệu đã lọc (CSV)",
+    data=csv_data,
+    file_name='filtered_accidents.csv',
+    mime='text/csv',
+)
+
 # =========================================
 # 4. GIAO DIỆN CHÍNH
 # =========================================
 st.title("🌐 US Traffic Accidents Analysis")
 st.markdown("---")
 
-# 4.1 KPIs
 k1, k2, k3, k4 = st.columns(4)
 total_count = len(filtered_df)
 k1.metric("Total Accidents", f"{total_count:,}")
@@ -93,13 +98,12 @@ k3.metric("Cities Covered", f"{filtered_df['City'].nunique():,}")
 k4.metric("States Affected", f"{filtered_df['State'].nunique()}")
 
 st.markdown("---")
-
-# 4.2 Bản đồ với Scroll Zoom
 st.subheader("🗺️ Accident Location Map")
 
 col_map_type, col_slider = st.columns([1, 2])
 with col_map_type:
-    map_style_choice = st.radio("Map Type:", ["Scatter Map", "Heatmap"], horizontal=True)
+    # --- TÍNH NĂNG MỚI: THÊM ANIMATED MAP ---
+    map_style_choice = st.radio("Map Type:", ["Scatter Map", "Heatmap", "Animated (By Hour)"], horizontal=True)
 with col_slider:
     max_allowed = min(200000, total_count) if total_count > 5000 else total_count
     def_val = min(30000, total_count)
@@ -111,28 +115,31 @@ if map_style_choice == "Scatter Map":
     fig_map = px.scatter_mapbox(
         map_sample, lat="Start_Lat", lon="Start_Lng", color="Severity",
         color_discrete_map={1: '#f0f0f0', 2: '#fee0d2', 3: '#fc9272', 4: '#de2d26'},
-        size_max=10, zoom=4.0, 
-        mapbox_style="open-street-map", 
-        height=650, center=dict(lat=39.8, lon=-98.5),
-        hover_name="State_Full_Name",
-        hover_data={"City": True, "Year": True, "Severity": True, "Start_Lat": False, "Start_Lng": False}
+        size_max=10, zoom=4.0, mapbox_style="open-street-map", height=650, center=dict(lat=39.8, lon=-98.5),
+        hover_name="State_Full_Name", hover_data={"City": True, "Year": True, "Severity": True, "Start_Lat": False, "Start_Lng": False}
     )
-else:
+elif map_style_choice == "Heatmap":
     fig_map = px.density_mapbox(
         map_sample, lat='Start_Lat', lon='Start_Lng', z='Severity', radius=8,
-        center=dict(lat=39.8, lon=-98.5), zoom=4.0,
-        mapbox_style="open-street-map", height=650,
+        center=dict(lat=39.8, lon=-98.5), zoom=4.0, mapbox_style="open-street-map", height=650,
         color_continuous_scale="Reds"
     )
-    
+else:
+    # Bản đồ Animation chạy theo giờ
+    map_sample_anim = map_sample.sort_values("Hour") # Phải sort dữ liệu trước khi chạy animation
+    fig_map = px.scatter_mapbox(
+        map_sample_anim, lat="Start_Lat", lon="Start_Lng", color="Severity",
+        animation_frame="Hour", # Thuộc tính tạo thanh play/pause
+        color_discrete_map={1: '#f0f0f0', 2: '#fee0d2', 3: '#fc9272', 4: '#de2d26'},
+        size_max=10, zoom=4.0, mapbox_style="open-street-map", height=650, center=dict(lat=39.8, lon=-98.5)
+    )
+
 fig_map.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
 st.plotly_chart(fig_map, use_container_width=True, config={'scrollZoom': True})
 
 st.markdown("---")
 
-# =========================================
-# 5. BIỂU ĐỒ XU HƯỚNG (LINE CHART)
-# =========================================
+# 5. BIỂU ĐỒ XU HƯỚNG
 st.subheader("📈 Accident Trends over Time")
 plot_type = st.radio("Show trend by:", ["Total", "Top 10 Cities"], horizontal=True)
 
@@ -150,17 +157,13 @@ if 'Year_Month' in filtered_df.columns:
 
 st.markdown("---")
 
-# =========================================
-# 6. BIỂU ĐỒ PHÂN TÍCH PHỤ (HISTOGRAMS)
-# =========================================
+# 6. BIỂU ĐỒ PHÂN TÍCH PHỤ
 st.subheader("📊 Supplementary Analysis")
 g1, g2 = st.columns(2)
-
 with g1:
     fig_hour = px.histogram(filtered_df, x='Hour', nbins=24, title="Accidents by Hour of Day", color_discrete_sequence=['#636EFA'])
     fig_hour.update_layout(xaxis_title="Hour (0-23)", yaxis_title="Count", bargap=0.1)
     st.plotly_chart(fig_hour, use_container_width=True)
-
 with g2:
     if 'Weather_Condition' in filtered_df.columns:
         top_weather = filtered_df['Weather_Condition'].value_counts().nlargest(15).index
@@ -168,5 +171,3 @@ with g2:
         fig_weather = px.histogram(weather_df, x='Weather_Condition', title="Accidents by Weather Condition (Top 15)", color_discrete_sequence=['#EF553B']).update_xaxes(categoryorder='total descending')
         fig_weather.update_layout(xaxis_title="Weather Condition", yaxis_title="Count")
         st.plotly_chart(fig_weather, use_container_width=True)
-    else:
-        st.write("Không có dữ liệu thời tiết.")
