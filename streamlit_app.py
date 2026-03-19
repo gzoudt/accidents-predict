@@ -57,8 +57,13 @@ def load_data():
     df['State_Full_Name'] = df['State'].map(US_STATE_NAMES)
 
     if 'Month' in df.columns:
-        df['Year_Month'] = pd.to_datetime(df['Year'].astype(str) + '-' + df['Month'].astype(str).str.zfill(2), format='%Y-%m')
-
+        # Loại bỏ các dòng bị khuyết tháng (nếu có) để tránh lỗi ép kiểu
+        df = df.dropna(subset=['Month'])
+        # Ép kiểu về số nguyên trước khi chuyển sang chuỗi
+        df['Month'] = df['Month'].astype(int) 
+        # Tạo cột Year_Month và thêm tham số errors='coerce' để app không bị sập nếu gặp lỗi data
+        df['Year_Month'] = pd.to_datetime(df['Year'].astype(str) + '-' + df['Month'].astype(str).str.zfill(2), format='%Y-%m', errors='coerce')
+        
     return df
 
 df = load_data()
