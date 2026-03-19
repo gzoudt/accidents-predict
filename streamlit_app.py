@@ -3,6 +3,22 @@ import streamlit as st
 st.set_page_config(page_title="US Accidents Analysis & Prediction", page_icon="🚦", layout="wide")
 
 # =========================================
+# CSS: ĐÓNG KHUNG KPI ĐẸP MẮT (LIGHT MODE)
+# =========================================
+st.markdown("""
+<style>
+    /* Tự động đóng khung tất cả các thẻ st.metric */
+    div[data-testid="stMetric"] {
+        border: 1px solid #dcdcdc;     /* Viền xám nhẹ */
+        border-radius: 10px;           /* Bo góc 10px */
+        padding: 15px 20px;            /* Khoảng cách chữ và viền */
+        background-color: #ffffff;     /* Nền trắng tinh */
+        box-shadow: 2px 2px 8px rgba(0,0,0,0.04); /* Bóng đổ cực mờ tạo chiều sâu nhẹ */
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# =========================================
 # GIAO DIỆN CHÍNH
 # =========================================
 st.title("🚦 US Traffic Accidents Analysis & Prediction")
@@ -41,6 +57,10 @@ with col2:
     """)
 
 st.markdown("---")
+
+# =========================================
+# CÁC THÔNG SỐ SẼ TỰ ĐỘNG ĐƯỢC ĐÓNG KHUNG
+# =========================================
 st.subheader("📊 Số liệu Dataset tổng quan")
 c1, c2, c3, c4 = st.columns(4)
 c1.metric("Tổng vụ tai nạn", "3.1M+")

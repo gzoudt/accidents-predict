@@ -8,6 +8,22 @@ st.set_page_config(page_title="US Accidents Dashboard", layout="wide", page_icon
 # Áp dụng nền trắng mặc định
 px.defaults.template = "plotly_white"
 
+# =========================================
+# CSS: ĐÓNG KHUNG KPI ĐẸP MẮT (LIGHT MODE)
+# =========================================
+st.markdown("""
+<style>
+    /* Tự động đóng khung tất cả các thẻ st.metric */
+    div[data-testid="stMetric"] {
+        border: 1px solid #dcdcdc;     /* Viền xám nhẹ */
+        border-radius: 10px;           /* Bo góc 10px */
+        padding: 15px 20px;            /* Khoảng cách chữ và viền */
+        background-color: #ffffff;     /* Nền trắng tinh */
+        box-shadow: 2px 2px 8px rgba(0,0,0,0.04); /* Bóng đổ cực mờ tạo chiều sâu nhẹ */
+    }
+</style>
+""", unsafe_allow_html=True)
+
 US_STATE_NAMES = {
     'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas', 'CA': 'California', 'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware', 'FL': 'Florida', 'GA': 'Georgia', 'HI': 'Hawaii', 'ID': 'Idaho', 'IL': 'Illinois', 'IN': 'Indiana', 'IA': 'Iowa', 'KS': 'Kansas', 'KY': 'Kentucky', 'LA': 'Louisiana', 'ME': 'Maine', 'MD': 'Maryland', 'MA': 'Massachusetts', 'MI': 'Michigan', 'MN': 'Minnesota', 'MS': 'Mississippi', 'MO': 'Missouri', 'MT': 'Montana', 'NE': 'Nebraska', 'NV': 'Nevada', 'NH': 'New Hampshire', 'NJ': 'New Jersey', 'NM': 'New Mexico', 'NY': 'New York', 'NC': 'North Carolina', 'ND': 'North Dakota', 'OH': 'Ohio', 'OK': 'Oklahoma', 'OR': 'Oregon', 'PA': 'Pennsylvania', 'RI': 'Rhode Island', 'SC': 'South Carolina', 'SD': 'South Dakota', 'TN': 'Tennessee', 'TX': 'Texas', 'UT': 'Utah', 'VT': 'Vermont', 'VA': 'Virginia', 'WA': 'Washington', 'WV': 'West Virginia', 'WI': 'Wisconsin', 'WY': 'Wyoming', 'DC': 'District of Columbia'
 }
@@ -18,6 +34,7 @@ def load_data():
     try:
         df = pd.read_parquet(file_path)
     except FileNotFoundError:
+        st.error(f"Không tìm thấy file `{file_path}`.")
         st.stop()
 
     if 'Temperature(F)' in df.columns: df['Temperature(C)'] = (df['Temperature(F)'] - 32) * 5.0 / 9.0
@@ -38,6 +55,9 @@ def load_data():
 
 df = load_data()
 
+# =========================================
+# BỘ LỌC SIDEBAR
+# =========================================
 st.sidebar.title("Filter Panels")
 
 with st.sidebar.form(key='filter_form'):
@@ -61,9 +81,13 @@ st.sidebar.markdown("---")
 csv_data = filtered_df.to_csv(index=False).encode('utf-8')
 st.sidebar.download_button(label="Download Data (CSV)", data=csv_data, file_name='filtered_accidents.csv', mime='text/csv')
 
+# =========================================
+# GIAO DIỆN CHÍNH (KPIS CÓ KHUNG)
+# =========================================
 st.title("📊 US Traffic Accidents Dashboard")
 st.markdown("---")
 
+# Các thông số này sẽ tự động được đóng khung nhờ đoạn CSS ở đầu trang
 k1, k2, k3, k4 = st.columns(4)
 total_count = len(filtered_df)
 k1.metric("Total Accidents", f"{total_count:,}")
@@ -72,6 +96,10 @@ k3.metric("Cities Covered", f"{filtered_df['City'].nunique():,}")
 k4.metric("States Affected", f"{filtered_df['State'].nunique()}")
 
 st.markdown("---")
+
+# =========================================
+# BIỂU ĐỒ THỐNG KÊ (PIE CHART ĐÃ SỬA LỖI)
+# =========================================
 st.subheader("Accident Statistics Overview")
 
 col_stat1, col_stat2 = st.columns(2)
@@ -92,7 +120,10 @@ with col_stat1:
     )
     # Tắt chữ trên biểu đồ để khỏi tràn viền, đặt bảng ghi chú gọn gàng
     fig_sev.update_traces(textinfo='none', hovertemplate='Severity: %{customdata[0]}<br>Count: %{value:,}<br>Percentage: %{customdata[1]:.1f}%', customdata=sev_counts[['Severity', 'Percent']])
-    fig_sev.update_layout(legend=dict(orientation="v", yanchor="center", y=0.5, xanchor="left", x=1.0))
+    
+    # Sử dụng "middle" để không bị lỗi ValueError
+    fig_sev.update_layout(legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="left", x=1.0))
+    
     st.plotly_chart(fig_sev, use_container_width=True)
 
 with col_stat2:
@@ -103,6 +134,10 @@ with col_stat2:
     st.plotly_chart(fig_state, use_container_width=True)
 
 st.markdown("---")
+
+# =========================================
+# BẢN ĐỒ KẾT QUẢ
+# =========================================
 st.subheader("Accident Location Map")
 col_map_type, col_slider = st.columns([1, 2])
 with col_map_type:
@@ -128,6 +163,10 @@ else:
 st.plotly_chart(fig_map, use_container_width=True, config={'scrollZoom': True})
 
 st.markdown("---")
+
+# =========================================
+# BIỂU ĐỒ XU HƯỚNG VÀ PHỤ
+# =========================================
 st.subheader("Accident Trends over Time")
 plot_type = st.radio("Show trend by:", ["Total", "Top 10 Cities"], horizontal=True)
 
