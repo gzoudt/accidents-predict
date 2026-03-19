@@ -64,7 +64,7 @@ if submitted:
     with st.spinner("Running AI Model..."):
         
         # NOTE: If your trained model uses Fahrenheit, you can convert it here:
-        # temp_f = (temp_c * 9/5) + 32 if temp_c is not None else None
+        temp_f = (temp_c * 9/5) + 32 if temp_c is not None else None
 
         # 2.1 Collect user input into a dictionary
         input_data = {
