@@ -129,22 +129,6 @@ if submitted:
         else:
             st.warning("No parameters were entered. The model used default mean values (Imputation) for prediction!")
         
-        # ... (Phần code ở trên giữ nguyên) ...
-
-        # 2.3 DISPLAY RESULTS
-        st.success("✅ Analysis Complete!")
-        
-        # Highlighted Severity Result
-        st.markdown(
-            f"""
-            <div style="text-align: center; padding: 20px; background-color: #f8f9fa; border-radius: 10px; border: 2px solid #e9ecef;">
-                <h3 style="color: #555;">Predicted Severity Level</h3>
-                <h1 style="color: #FF4B4B; font-size: 60px; margin: 0;">SEVERITY {predicted_severity}</h1>
-            </div>
-            """, 
-            unsafe_allow_html=True
-        )
-        
         st.write("") 
         
         # =========================================
