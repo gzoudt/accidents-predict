@@ -3,58 +3,6 @@ import streamlit as st
 st.set_page_config(page_title="US Accidents Analysis & Prediction", page_icon="🚦", layout="wide")
 
 # =========================================
-# CSS: HIỆU ỨNG TỐI CHUYÊN NGHIỆP & 3D LAYER
-# =========================================
-def apply_dark_theme_css():
-    css = """
-    <style>
-        /* Tùy chỉnh Metric Cards (Giống ảnh bạn gửi) */
-        [data-testid="stMetricValueContainer"], 
-        [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"] > div[class*="stMetric"] {
-            background-color: #1e2130 !important;
-            border: 2px solid #3e8ede !important; /* Viền xanh dương */
-            border-radius: 10px !important;
-            padding: 15px !important;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4) !important;
-            transition: transform 0.2s;
-        }
-        
-        div[data-testid="stMetricValue"] {
-            color: #3e8ede !important; /* Số màu xanh dương */
-            font-weight: bold;
-        }
-
-        /* Định dạng các khối (Cards) bao quanh Form, Expander */
-        [data-testid="stForm"], .stExpander {
-            background-color: #1e2130 !important;
-            border: 1px solid #30363d !important;
-            border-radius: 12px !important;
-            padding: 15px !important;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4) !important;
-            transition: transform 0.2s !important;
-        }
-
-        /* Hiệu ứng Hover bay lên */
-        [data-testid="stMetricValueContainer"]:hover, [data-testid="stForm"]:hover {
-             transform: translateY(-4px);
-             box-shadow: 0 8px 15px rgba(62, 142, 222, 0.15) !important; /* Bóng xanh nhẹ */
-        }
-
-        /* Animation Fade-in */
-        @keyframes fadeIn {
-            0% { opacity: 0; transform: translateY(15px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
-        h1, h2, h3, [data-testid="stMetricValueContainer"], [data-testid="stForm"] {
-            animation: fadeIn 0.6s ease-out;
-        }
-    </style>
-    """
-    st.markdown(css, unsafe_allow_html=True)
-
-apply_dark_theme_css()
-
-# =========================================
 # GIAO DIỆN CHÍNH
 # =========================================
 st.title("🚦 US Traffic Accidents Analysis & Prediction")

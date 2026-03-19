@@ -4,27 +4,9 @@ import numpy as np
 import plotly.express as px
 
 st.set_page_config(page_title="Severity Prediction", layout="wide", page_icon="🎯")
-px.defaults.template = "plotly_dark"
 
-# =========================================
-# CSS: HIỆU ỨNG TỐI CHUYÊN NGHIỆP
-# =========================================
-def apply_dark_theme_css():
-    css = """
-    <style>
-        [data-testid="stMetricValueContainer"], [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"] > div[class*="stMetric"] {
-            background-color: #1e2130 !important; border: 2px solid #3e8ede !important; border-radius: 10px !important; padding: 15px !important; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4) !important; transition: transform 0.2s;
-        }
-        div[data-testid="stMetricValue"] { color: #3e8ede !important; font-weight: bold; }
-        [data-testid="stForm"], .stExpander { background-color: #1e2130 !important; border: 1px solid #30363d !important; border-radius: 12px !important; padding: 15px !important; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4) !important; transition: transform 0.2s !important; }
-        [data-testid="stMetricValueContainer"]:hover, [data-testid="stForm"]:hover { transform: translateY(-4px); box-shadow: 0 8px 15px rgba(62, 142, 222, 0.15) !important; }
-        @keyframes fadeIn { 0% { opacity: 0; transform: translateY(15px); } 100% { opacity: 1; transform: translateY(0); } }
-        h1, h2, h3, [data-testid="stMetricValueContainer"], [data-testid="stForm"] { animation: fadeIn 0.6s ease-out; }
-    </style>
-    """
-    st.markdown(css, unsafe_allow_html=True)
-
-apply_dark_theme_css()
+# Trả biểu đồ về nền trắng
+px.defaults.template = "plotly_white"
 
 # =========================================
 # GIAO DIỆN CHÍNH
@@ -85,12 +67,12 @@ if submitted:
             predicted_severity = np.random.choice([2, 3])
 
         st.success("✅ Analysis Complete!")
-        # Đổi nền màu hộp kết quả sang màu Dark Theme
+        # Trả nền hộp kết quả về tông màu sáng, nhạt
         st.markdown(
             f"""
-            <div style="text-align: center; padding: 20px; background-color: #1e2130; border-radius: 12px; border: 2px solid #de2d26;">
-                <h3 style="color: #e6edf3;">Predicted Severity Level</h3>
-                <h1 style="color: #de2d26; font-size: 60px; margin: 0;">SEVERITY {predicted_severity}</h1>
+            <div style="text-align: center; padding: 20px; background-color: #f8f9fa; border-radius: 10px; border: 2px solid #e9ecef;">
+                <h3 style="color: #555;">Predicted Severity Level</h3>
+                <h1 style="color: #FF4B4B; font-size: 60px; margin: 0;">SEVERITY {predicted_severity}</h1>
             </div>
             """, 
             unsafe_allow_html=True
@@ -103,7 +85,7 @@ if submitted:
             with col_chart:
                 st.markdown("**1. Feature Impact (SHAP Values)**")
                 importance_df = pd.DataFrame({'Features': ['Weather Condition', 'Visibility', 'Time (Hour)', 'Traffic Signal'], 'Impact Score': [45.2, 25.8, 15.0, 14.0]})
-                fig_shap = px.bar(importance_df, x='Impact Score', y='Features', orientation='h', color_discrete_sequence=['#fb6a4a']) # Màu cam điểm nhấn
+                fig_shap = px.bar(importance_df, x='Impact Score', y='Features', orientation='h', color_discrete_sequence=['#FF4B4B'])
                 fig_shap.update_layout(yaxis={'categoryorder':'total ascending'}, height=300, margin=dict(l=0, r=0, t=30, b=0))
                 st.plotly_chart(fig_shap, use_container_width=True)
 
