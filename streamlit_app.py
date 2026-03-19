@@ -9,8 +9,22 @@ import plotly.graph_objects as go
 # =========================================
 st.set_page_config(page_title="US Accidents Analysis", layout="wide", page_icon="🚗")
 
-# Sử dụng theme Plotly trắng để sạch sẽ và giống GDP dashboard
 px.defaults.template = "plotly_white"
+
+# Từ điển ánh xạ mã bang -> tên đầy đủ (dùng cho chú thích)
+US_STATE_NAMES = {
+    'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas', 'CA': 'California',
+    'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware', 'FL': 'Florida', 'GA': 'Georgia',
+    'HI': 'Hawaii', 'ID': 'Idaho', 'IL': 'Illinois', 'IN': 'Indiana', 'IA': 'Iowa',
+    'KS': 'Kansas', 'KY': 'Kentucky', 'LA': 'Louisiana', 'ME': 'Maine', 'MD': 'Maryland',
+    'MA': 'Massachusetts', 'MI': 'Michigan', 'MN': 'Minnesota', 'MS': 'Mississippi', 'MO': 'Missouri',
+    'MT': 'Montana', 'NE': 'Nebraska', 'NV': 'Nevada', 'NH': 'New Hampshire', 'NJ': 'New Jersey',
+    'NM': 'New Mexico', 'NY': 'New York', 'NC': 'North Carolina', 'ND': 'North Dakota', 'OH': 'Ohio',
+    'OK': 'Oklahoma', 'OR': 'Oregon', 'PA': 'Pennsylvania', 'RI': 'Rhode Island', 'SC': 'South Carolina',
+    'SD': 'South Dakota', 'TN': 'Tennessee', 'TX': 'Texas', 'UT': 'Utah', 'VT': 'Vermont',
+    'VA': 'Virginia', 'WA': 'Washington', 'WV': 'West Virginia', 'WI': 'Wisconsin', 'WY': 'Wyoming',
+    'DC': 'District of Columbia'
+}
 
 st.title("🌐 US Accidents Analysis Dashboard")
 st.markdown("---")
@@ -20,10 +34,13 @@ st.markdown("---")
 # =========================================
 @st.cache_data(show_spinner="Đang tải dữ liệu tốc độ cao... 🚀")
 def load_data():
-    file_path = r"D:\FPT\Spring 2026\DAP391m\DAP-Project\dashboard_app\accidents-predict\dashboard_data.parquet"
-    df = pd.read_parquet(file_path)
+    file_path = "dashboard_data.parquet" 
+    try:
+        df = pd.read_parquet(file_path)
+    except FileNotFoundError:
+        st.error(f"Không tìm thấy file dữ liệu `{file_path}` ở thư mục gốc.")
+        st.stop()
 
-    # Quy đổi và làm sạch (từ code gốc của bạn)
     if 'Temperature(F)' in df.columns:
         df['Temperature(C)'] = (df['Temperature(F)'] - 32) * 5.0 / 9.0
     if 'Distance(mi)' in df.columns:
@@ -33,73 +50,50 @@ def load_data():
     if 'Precipitation(in)' in df.columns:
         df['Precipitation(mm)'] = df['Precipitation(in)'] * 25.4
     
-    # Drop columns cũ và làm sạch NA
     df = df.drop(columns=[c for c in ['Temperature(F)', 'Distance(mi)', 'Visibility(mi)', 'Precipitation(in)'] if c in df.columns])
     df = df.dropna(subset=['Start_Lat', 'Start_Lng', 'Year', 'Hour', 'City', 'State'])
     df = df.reset_index(drop=True)
 
-    # Ép kiểu tối ưu
+    # Ép kiểu
     df['Year'] = df['Year'].astype('int16')
     df['Hour'] = df['Hour'].astype('int8')
     df['Severity'] = df['Severity'].astype('int8')
     df['Junction'] = df['Junction'].fillna(False).astype(bool)
 
-    # Tạo cột Year_Month để làm biểu đồ đường
+    # Thêm cột tên đầy đủ của bang dùng cho hover
+    df['State_Full_Name'] = df['State'].map(US_STATE_NAMES)
+
     if 'Month' in df.columns:
-        # Ép Month sang số nguyên để mất đuôi .0, sau đó mới ghép chuỗi
         df['Month'] = df['Month'].astype(int) 
         df['Year_Month'] = df['Year'].astype(str) + '-' + df['Month'].astype(str).str.zfill(2)
-        df['Year_Month'] = pd.to_datetime(df['Year_Month']) # Ép sang Datetime
+        df['Year_Month'] = pd.to_datetime(df['Year_Month'], format='%Y-%m')
 
     return df
 
 df = load_data()
 
 # =========================================
-# 3. BỘ LỌC TƯƠNG TÁC (SIDEBAR & TOP)
+# 3. BỘ LỌC TƯƠNG TÁC (TOP & SIDEBAR)
 # =========================================
-
-# --- 3.1 THANH KÉO THỜI GIAN (Range Slider) - GIỐNG ẢNH 1 ---
 st.markdown("#### Which years are you interested in?")
-min_year = int(df["Year"].min())
-max_year = int(df["Year"].max())
+min_year, max_year = int(df["Year"].min()), int(df["Year"].max())
 
-# Tạo slider chọn khoảng năm
 start_year, end_year = st.slider(
     "Select a range of years",
-    min_value=min_year,
-    max_value=max_year,
-    value=(min_year, max_year), # Mặc định chọn toàn bộ
-    step=1,
-    help="Drag the sliders to select the start and end year for analysis."
+    min_value=min_year, max_value=max_year,
+    value=(min_year, max_year), step=1
 )
-st.caption(f"Analyzing accidents from {start_year} to {end_year}")
 
-# --- 3.2 BỘ LỌC SEVERITY & STATE ---
+# Sidebar Filter Panels
 st.sidebar.header("Filter Panels")
-
-# State multiselect (Giống country selector ảnh 1)
-available_states = sorted(df['State'].unique())
-selected_states = st.sidebar.multiselect(
-    "Select States to view:",
-    options=available_states,
-    default=available_states, # Mặc định chọn tất cả
-    help="Select one or more states to filter the data."
-)
-
 severity_options = sorted(df['Severity'].unique())
-selected_severities = st.sidebar.multiselect(
-    "⚠️ Mức độ nghiêm trọng",
-    severity_options, 
-    default=severity_options
-)
+selected_severities = st.sidebar.multiselect("⚠️ Mức độ nghiêm trọng", severity_options, default=severity_options)
 
-# Áp dụng bộ lọc tổng thể
+available_states = sorted(df['State'].unique())
+selected_states = st.sidebar.multiselect("Select States (Abbr.):", options=available_states, default=available_states)
+
 filtered_df = df.copy()
-filtered_df = filtered_df[
-    (filtered_df["Year"] >= start_year) & 
-    (filtered_df["Year"] <= end_year)
-]
+filtered_df = filtered_df[(filtered_df["Year"] >= start_year) & (filtered_df["Year"] <= end_year)]
 if selected_severities:
     filtered_df = filtered_df[filtered_df['Severity'].isin(selected_severities)]
 if selected_states:
@@ -110,122 +104,97 @@ if filtered_df.empty:
     st.stop()
 
 # =========================================
-# 4. TRANG 1: PHÂN TÍCH HIỆN TẠI (INTEGRATED ANALYSIS)
+# 4. TRANG 1: PHÂN TÍCH TÍCH HỢP
 # =========================================
 tab_analysis, = st.tabs(["Trang 1: Phân tích tích hợp"])
 
 with tab_analysis:
     
-    # --- 4.1 KPIs (THÔNG SỐ GIỐNG ẢNH 2) ---
+    # --- 4.1 KPIs (Ảnh 2) ---
     st.subheader(f"🌐 US Accidents Overview: {start_year} - {end_year}")
-    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
-
-    total_accidents = len(filtered_df)
-    avg_severity = filtered_df['Severity'].mean()
-    junction_pct = (filtered_df['Junction'].sum() / total_accidents) * 100 if total_accidents > 0 else 0
-    total_states = filtered_df['State'].nunique()
-
-    with kpi1:
-        # Style metric chuẩn Streamlit
-        st.metric(label="Total Accidents", value=f"{total_accidents:,}", help="Tổng số vụ tai nạn trong khoảng thời gian đã chọn")
-    with kpi2:
-        st.metric(label="Avg Severity", value=f"{avg_severity:.2f} / 4", help="Mức độ nghiêm trọng trung bình (scale 1-4)")
-    with kpi3:
-        st.metric(label="Junction Accidents Pct", value=f"{junction_pct:.1f}%", help="Phần trăm tai nạn xảy ra tại nút giao thông")
-    with kpi4:
-        st.metric(label="States Analyzed", value=f"{total_states}", help="Số lượng bang đang được hiển thị trên dashboard")
+    k1, k2, k3, k4 = st.columns(4)
+    total = len(filtered_df)
+    with k1: st.metric("Total Accidents", f"{total:,}")
+    with k2: st.metric("Avg Severity", f"{filtered_df['Severity'].mean():.2f} / 4")
+    with k3: st.metric("Junction Pct", f"{(filtered_df['Junction'].sum()/total)*100:.1f}%")
+    with k4: st.metric("States", f"{filtered_df['State'].nunique()}")
 
     st.markdown("---")
 
-    col_map, col_chart = st.columns([2, 1])
+    # --- 4.2 BẢN ĐỒ (Mapbox) - THÊM TƯƠNG TÁC & CHÚ THÍCH BANG ---
+    st.subheader("🗺️ Accident Location Map")
+    
+    # --- YÊU CẦU 1: THÊM TƯƠNG TÁC (SLIDER CHỌN SỐ ĐIỂM) ---
+    st.caption("Customize the map detail by adjusting the number of data points. More points may reduce map performance.")
+    
+    # Slider cho người dùng chọn số lượng điểm muốn vẽ
+    max_sample_allowed = min(200000, len(filtered_df)) # Giới hạn tối đa 200k điểm để tránh crash
+    map_points = st.slider(
+        "Number of map points to display:",
+        min_value=5000,
+        max_value=max_sample_allowed,
+        value=min(30000, len(filtered_df)), # Mặc định 30k điểm
+        step=5000
+    )
+    st.write(f"Displaying **{map_points:,}** points out of **{len(filtered_df):,}** filtered accidents.")
 
-    # --- 4.2 BẢN ĐỒ TƯƠNG TÁC (MAPBOX) - SỬA LỖI TƯƠNG TÁC ---
-    with col_map:
-        st.subheader("🗺️ Accident Map (Zoom & Interacive)")
-        st.caption("Map is using a data sample for performance. You can fully interact (zoom/pan).")
+    # Lấy mẫu dựa trên giá trị slider
+    map_sample = filtered_df.sample(n=map_points, random_state=42)
+    
+    fig_map = px.scatter_mapbox(
+        map_sample,
+        lat="Start_Lat",
+        lon="Start_Lng",
+        color="Severity",
+        # Thang màu Severity đỏ
+        color_discrete_map={1: '#f0f0f0', 2: '#fee0d2', 3: '#fc9272', 4: '#de2d26'},
+        size_max=10,
+        zoom=3,
+        mapbox_style="open-street-map",
+        height=650,
+        center=dict(lat=39.8283, lon=-98.5795),
         
-        # Giới hạn dữ liệu để bản đồ không bị lag, nhưng vẫn đảm bảo có đủ điểm để nhìn
-        map_sample_size = 30000 
-        if len(filtered_df) > map_sample_size:
-            map_data = filtered_df.sample(n=map_sample_size, random_state=42)
-        else:
-            map_data = filtered_df
+        # --- YÊU CẦU 2: CHÚ THÍCH TÊN BANG (FULL NAME) TRONG HOVER ---
+        hover_name="State_Full_Name", # Hiển thị tên đầy đủ in đậm hàng đầu tiên
+        hover_data={
+            "State": True, # Hiển thị mã bang
+            "City": True,
+            "Weather_Condition": True,
+            "Temperature(C)": ":.1f",
+            "Severity": True,
+            "Start_Lat": False, # Ẩn vĩ độ
+            "Start_Lng": False # Ẩn kinh độ
+        }
+    )
+    fig_map.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+    st.plotly_chart(fig_map, use_container_width=True)
 
-        center_us = dict(lat=39.8283, lon=-98.5795)
+    st.markdown("---")
 
-        # Sử dụng px.scatter_mapbox để có hiệu suất tốt hơn st.map và có thể tương tác
-        fig_map = px.scatter_mapbox(
-            map_data,
-            lat="Start_Lat",
-            lon="Start_Lng",
-            color="Severity",
-            # Thang màu severity đỏ để nổi bật
-            color_discrete_map={1: '#f0f0f0', 2: '#fee0d2', 3: '#fc9272', 4: '#de2d26'},
-            size_max=10,
-            zoom=3,
-            mapbox_style="open-street-map",
-            hover_name="City",
-            hover_data={"Weather_Condition": True, "Temperature(C)": ":.1f"},
-            height=600,
-            center=center_us
-        )
-        fig_map.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
-        # Thêm theme="streamlit" để map đồng bộ với theme nền
-        st.plotly_chart(fig_map, use_container_width=True, theme="streamlit")
+    # --- 4.3 BIỂU ĐỒ ĐƯỜNG (Xu hướng thời gian) ---
+    st.subheader("📈 Accident Trends over Time")
+    plot_type = st.radio("Show trend by:", ["Total", "Top States"], horizontal=True)
 
-    # --- 4.3 BIỂU ĐỒ ĐƯỜNG THEO THỜI GIAN (XU HƯỚNG GIỐNG ẢNH 1) ---
-    with col_chart:
-        st.subheader("📈 Accident Trends over Time")
-        
-        # Aggregate dữ liệu theo tháng/năm để vẽ đường
-        if 'Year_Month' in filtered_df.columns:
+    if 'Year_Month' in filtered_df.columns:
+        if plot_type == "Total":
             trend_df = filtered_df.groupby('Year_Month').size().reset_index(name='Count')
-            # Thêm bộ lọc State vào trend df để vẽ nhiều đường
-            state_trend_df = filtered_df.groupby(['Year_Month', 'State']).size().reset_index(name='Count')
-            
-            # Chọn loại biểu đồ
-            plot_type = st.radio("Show trend by:", ["Total", "Top States"], horizontal=True)
-
-            if plot_type == "Total":
-                fig_trend = px.line(trend_df, x='Year_Month', y='Count', title="Total Accidents Trend")
-            else:
-                # Vẽ biểu đồ đường nhiều đường (multiple lines) cho các bang hàng đầu
-                top_states = filtered_df['State'].value_counts().nlargest(10).index
-                fig_trend = px.line(
-                    state_trend_df[state_trend_df['State'].isin(top_states)],
-                    x='Year_Month', 
-                    y='Count', 
-                    color='State', 
-                    title="Trends for Top 10 States"
-                )
-            
-            fig_trend.update_layout(height=520, margin={"r":10,"t":40,"l":10,"b":10})
-            st.plotly_chart(fig_trend, use_container_width=True)
+            fig_trend = px.line(trend_df, x='Year_Month', y='Count', title="Total Accidents Trend")
         else:
-            st.warning("Cột dữ liệu 'Month' không tồn tại. Không thể vẽ biểu đồ xu hướng theo thời gian.")
+            top_states = filtered_df['State'].value_counts().nlargest(10).index
+            state_trend = filtered_df.groupby(['Year_Month', 'State']).size().reset_index(name='Count')
+            fig_trend = px.line(state_trend[state_trend['State'].isin(top_states)], 
+                                x='Year_Month', y='Count', color='State', title="Top 10 States Trend")
+        
+        fig_trend.update_layout(height=450)
+        st.plotly_chart(fig_trend, use_container_width=True)
 
     st.markdown("---")
 
-    # --- 4.4 BIỂU ĐỒ GRID (Phân tích chi tiết khác) ---
+    # --- 4.4 BIỂU ĐỒ Grid ---
     st.subheader("Chi tiết phân tích khác")
-    grid_col1, grid_col2 = st.columns(2)
-
-    with grid_col1:
-        fig_hour = px.histogram(filtered_df, x='Hour', color='Sunrise_Sunset', nbins=24, title="Tai nạn theo giờ và Ngày/Đêm")
-        st.plotly_chart(fig_hour, use_container_width=True)
-        
-        top_cities = filtered_df['City'].value_counts().nlargest(20).index
-        fig_city = px.histogram(filtered_df[filtered_df['City'].isin(top_cities)], x='City', title="Top Cities").update_xaxes(categoryorder='total descending')
-        st.plotly_chart(fig_city, use_container_width=True)
-
-    with grid_col2:
-        top_weather = filtered_df['Weather_Condition'].value_counts().nlargest(15).index
-        fig_weather = px.histogram(filtered_df[filtered_df['Weather_Condition'].isin(top_weather)], x='Weather_Condition', title="Top Weather Conditions").update_xaxes(categoryorder='total descending')
-        st.plotly_chart(fig_weather, use_container_width=True)
-        
-        infra_df = pd.DataFrame({
-            "Type": ["Junction", "Traffic_Signal"],
-            "Count": [filtered_df['Junction'].sum(), filtered_df['Traffic_Signal'].sum()]
-        })
-        fig_infra = px.bar(infra_df, x="Type", y="Count", title="Infrastructure Analysis")
-        st.plotly_chart(fig_infra, use_container_width=True)
+    g1, g2 = st.columns(2)
+    with g1:
+        st.plotly_chart(px.histogram(filtered_df, x='Hour', color='Sunrise_Sunset', nbins=24, title="By Hour"), use_container_width=True)
+    with g2:
+        st.plotly_chart(px.histogram(filtered_df[filtered_df['Weather_Condition'].isin(filtered_df['Weather_Condition'].value_counts().nlargest(15).index)], 
+                                     x='Weather_Condition', title="Top Weather").update_xaxes(categoryorder='total descending'), use_container_width=True)
