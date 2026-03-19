@@ -1,6 +1,6 @@
-# 🚗_americas: US accidents Dashboard
+# 🚗: US accidents Dashboard
 
-A simple Streamlit app showing the GDP of different countries in the world.
+A simple Streamlit app showing the US accidents dashboard and predict model.
 
 [![Open in Streamlit]((https://accident-predict-dashboard.streamlit.app/)/)
 
