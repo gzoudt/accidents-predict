@@ -4,60 +4,51 @@ import numpy as np
 import plotly.express as px
 import datetime
 
+# Cấu hình trang (phải gọi đầu tiên)
+st.set_page_config(page_title="Predict Model", layout="wide", page_icon="🔮")
+
+# Đồng bộ CSS nền tối với Page 1
+st.markdown("""
+    <style>
+    .stApp { background-color: #0E1117; color: #FAFAFA; }
+    [data-testid="stSidebar"] { background-color: #1E1E2E; }
+    </style>
+""", unsafe_allow_html=True)
+
 st.title("🔮 Traffic Accident Prediction Model")
-st.markdown("Dự báo các khu vực có rủi ro xảy ra tai nạn giao thông cao dựa trên dữ liệu lịch sử và điều kiện thời tiết.")
+st.markdown("Mô hình học máy sẽ phân tích dựa trên lịch sử và điều kiện thời tiết để đưa ra các điểm nóng rủi ro.")
 
-# --- BỘ LỌC DỰ ĐOÁN (INPUTS) ---
-st.subheader("1. Thiết lập thông số dự đoán")
-col1, col2, col3 = st.columns(3)
+# Form chọn thông số đầu vào
+p_col1, p_col2, p_col3 = st.columns(3)
+with p_col1:
+    pred_date = st.date_input("🗓️ Chọn ngày dự đoán", datetime.date.today() + datetime.timedelta(days=1))
+with p_col2:
+    pred_weather = st.selectbox("☁️ Dự báo thời tiết", ["Clear", "Rain", "Snow", "Fog"])
+with p_col3:
+    pred_temp = st.slider("🌡️ Nhiệt độ (°C)", -10, 45, 25)
 
-with col1:
-    predict_date = st.date_input("🗓️ Chọn ngày dự đoán", datetime.date.today() + datetime.timedelta(days=1))
-with col2:
-    weather_cond = st.selectbox("☁️ Dự báo thời tiết", ["Clear", "Rain", "Snow", "Fog", "Thunderstorm"])
-with col3:
-    temp_val = st.slider("🌡️ Nhiệt độ dự kiến (°C)", min_value=-20, max_value=50, value=20)
-
-# --- NÚT CHẠY MÔ HÌNH ---
 st.markdown("---")
-predict_btn = st.button("🚀 Chạy mô hình dự đoán", use_container_width=True, type="primary")
-
-# --- KẾT QUẢ DỰ ĐOÁN (MOCK DATA) ---
-if predict_btn:
-    with st.spinner("Phân tích dữ liệu & Đang chạy Inference Model..."):
-        # TẠO MOCK DATA (Dữ liệu giả lập để hiển thị giao diện)
-        # Thay thế phần này bằng code gọi file model.pkl của bạn sau này
-        mock_lat = np.random.uniform(25.0, 49.0, 300) # Tọa độ vĩ độ random quanh Mỹ
-        mock_lng = np.random.uniform(-120.0, -70.0, 300) # Tọa độ kinh độ random quanh Mỹ
-        mock_risk = np.random.randint(1, 100, 300) # Rủi ro tai nạn (%)
+if st.button("🚀 Chạy mô hình dự đoán (Mock)", type="primary"):
+    with st.spinner("Đang chạy Inference Model..."):
+        # Dữ liệu giả lập chờ bạn ghép Model thật
+        mock_lat = np.random.uniform(30.0, 47.0, 150) 
+        mock_lng = np.random.uniform(-115.0, -80.0, 150)
+        mock_risk = np.random.randint(60, 100, 150) 
+        df_pred = pd.DataFrame({'Lat': mock_lat, 'Lng': mock_lng, 'Risk(%)': mock_risk})
         
-        df_pred = pd.DataFrame({'Lat': mock_lat, 'Lng': mock_lng, 'Risk_Probability': mock_risk})
+        st.success(f"Hoàn thành dự đoán cho {pred_date.strftime('%d/%m/%Y')}!")
         
-        # Lọc chỉ lấy các khu vực rủi ro > 50% để hiển thị
-        df_high_risk = df_pred[df_pred['Risk_Probability'] > 50]
-
-        st.success(f"✅ Đã hoàn thành dự đoán cho ngày {predict_date.strftime('%d/%m/%Y')}!")
-        
-        # --- HIỂN THỊ BẢN ĐỒ DỰ ĐOÁN ---
-        st.subheader("🗺️ Bản đồ các điểm nóng rủi ro cao")
-        
-        # Dùng mapbox style "carto-darkmatter" nhìn rất ngầu và hợp với màu nhiệt (heatmap)
-        fig_pred_map = px.scatter_mapbox(
-            df_high_risk,
-            lat="Lat",
-            lon="Lng",
-            color="Risk_Probability",
-            color_continuous_scale="Inferno", # Thang màu rực rỡ thể hiện rủi ro
-            size="Risk_Probability", # Điểm rủi ro cao sẽ to hơn
-            size_max=15,
-            zoom=3.8,
-            mapbox_style="carto-darkmatter", 
-            center=dict(lat=39.8, lon=-98.5),
-            hover_data={"Lat": False, "Lng": False, "Risk_Probability": ":.1f%"}
+        st.subheader("🗺️ Bản đồ rủi ro dự kiến")
+        fig_pred = px.scatter_mapbox(
+            df_pred, lat="Lat", lon="Lng", color="Risk(%)",
+            color_continuous_scale="Inferno", size="Risk(%)", size_max=15,
+            zoom=3.8, mapbox_style="carto-darkmatter", # Nền tối cho bản đồ dự báo
+            center=dict(lat=39.8, lon=-98.5), height=550
         )
-        fig_pred_map.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
-        st.plotly_chart(fig_pred_map, use_container_width=True)
-
-        # Hiển thị bảng tóm tắt
-        st.write("📊 **Danh sách khu vực cần chú ý:**")
-        st.dataframe(df_high_risk.sort_values(by="Risk_Probability", ascending=False).head(5), use_container_width=True)
+        fig_pred.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+        
+        # Có hỗ trợ lăn chuột zoom
+        st.plotly_chart(fig_pred, use_container_width=True, config={'scrollZoom': True})
+        
+        st.write("📊 **Top khu vực rủi ro cao nhất:**")
+        st.dataframe(df_pred.sort_values(by="Risk(%)", ascending=False).head(), use_container_width=True)
