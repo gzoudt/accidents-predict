@@ -4,11 +4,14 @@ import numpy as np
 import plotly.express as px
 
 # =========================================
-# 1. CẤU HÌNH TRANG
+# 1. CẤU HÌNH TRANG VÀ GIAO DIỆN
 # =========================================
 st.set_page_config(page_title="US Accidents Analysis", layout="wide", page_icon="🚗")
+
+# Đảm bảo biểu đồ luôn dùng nền trắng sạch sẽ
 px.defaults.template = "plotly_white"
 
+# Từ điển ánh xạ mã bang -> tên đầy đủ
 US_STATE_NAMES = {
     'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas', 'CA': 'California',
     'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware', 'FL': 'Florida', 'GA': 'Georgia',
@@ -24,7 +27,7 @@ US_STATE_NAMES = {
 }
 
 # =========================================
-# 2. LOAD DATA
+# 2. LOAD DATA TỐI ƯU HÓA
 # =========================================
 @st.cache_data(show_spinner="Đang tải dữ liệu... 🚀")
 def load_data():
@@ -32,7 +35,7 @@ def load_data():
     try:
         df = pd.read_parquet(file_path)
     except FileNotFoundError:
-        st.error(f"Không tìm thấy file `{file_path}`.")
+        st.error(f"Không tìm thấy file `{file_path}` ở thư mục gốc.")
         st.stop()
 
     if 'Temperature(F)' in df.columns: df['Temperature(C)'] = (df['Temperature(F)'] - 32) * 5.0 / 9.0
@@ -54,7 +57,7 @@ def load_data():
 df = load_data()
 
 # =========================================
-# 3. BỘ LỌC SIDEBAR & TẢI DỮ LIỆU
+# 3. BỘ LỌC SIDEBAR & TẢI FILE CSV
 # =========================================
 st.sidebar.title("🛠️ Filter Panels")
 min_year, max_year = int(df["Year"].min()), int(df["Year"].max())
@@ -66,6 +69,7 @@ selected_sev = st.sidebar.multiselect("⚠️ Severity", severity_opts, default=
 available_states = sorted(df['State'].unique())
 selected_states = st.sidebar.multiselect("📍 States", options=available_states, default=available_states)
 
+# Xử lý lọc dữ liệu theo Sidebar
 filtered_df = df[(df["Year"] >= start_year) & (df["Year"] <= end_year)]
 if selected_sev: filtered_df = filtered_df[filtered_df['Severity'].isin(selected_sev)]
 if selected_states: filtered_df = filtered_df[filtered_df['State'].isin(selected_states)]
@@ -74,6 +78,7 @@ if filtered_df.empty:
     st.warning("Không có dữ liệu phù hợp với bộ lọc.")
     st.stop()
 
+# Nút tải dữ liệu hiện tại
 st.sidebar.markdown("---")
 csv_data = filtered_df.to_csv(index=False).encode('utf-8')
 st.sidebar.download_button(
@@ -84,7 +89,7 @@ st.sidebar.download_button(
 )
 
 # =========================================
-# 4. GIAO DIỆN CHÍNH
+# 4. GIAO DIỆN CHÍNH (PAGE 1)
 # =========================================
 st.title("🌐 US Traffic Accidents Analysis")
 st.markdown("---")
@@ -106,10 +111,11 @@ st.subheader("🖱️ Interactive Filters (Click on charts to filter the map)")
 st.caption("Mẹo: Bạn có thể click vào các cột trên biểu đồ bên dưới để lọc trực tiếp dữ liệu trên Bản đồ.")
 
 g1, g2 = st.columns(2)
+
 with g1:
     fig_hour = px.histogram(filtered_df, x='Hour', nbins=24, title="Accidents by Hour", color_discrete_sequence=['#636EFA'])
     fig_hour.update_layout(xaxis_title="Hour (0-23)", yaxis_title="Count", bargap=0.1)
-    # on_select="rerun" giúp web load lại khi user click vào biểu đồ
+    # Lấy sự kiện click từ biểu đồ Hour
     hour_event = st.plotly_chart(fig_hour, use_container_width=True, on_select="rerun", selection_mode="points", key="hour_chart")
 
 with g2:
@@ -118,17 +124,15 @@ with g2:
         weather_df = filtered_df[filtered_df['Weather_Condition'].isin(top_weather)]
         fig_weather = px.histogram(weather_df, x='Weather_Condition', title="Accidents by Weather", color_discrete_sequence=['#EF553B']).update_xaxes(categoryorder='total descending')
         fig_weather.update_layout(xaxis_title="Weather Condition", yaxis_title="Count")
+        # Lấy sự kiện click từ biểu đồ Weather
         weather_event = st.plotly_chart(fig_weather, use_container_width=True, on_select="rerun", selection_mode="points", key="weather_chart")
     else:
         weather_event = None
 
-# --- XỬ LÝ DỮ LIỆU ĐƯỢC CLICK ---
-# Lấy giá trị user đã click trên biểu đồ Hour
+# --- Xử lý dữ liệu sau khi Click ---
 selected_hours = [point["x"] for point in hour_event.selection.points] if hour_event and hour_event.selection.points else []
-# Lấy giá trị user đã click trên biểu đồ Weather
 selected_weathers = [point["x"] for point in weather_event.selection.points] if weather_event and weather_event.selection.points else []
 
-# Lọc dữ liệu cho Bản đồ dựa trên sự kiện click
 map_df = filtered_df.copy()
 if selected_hours:
     map_df = map_df[map_df['Hour'].isin(selected_hours)]
@@ -138,12 +142,13 @@ if selected_weathers:
 st.markdown("---")
 
 # =========================================
-# 6. BẢN ĐỒ KẾT QUẢ ĐÃ LỌC
+# 6. BẢN ĐỒ KẾT QUẢ
 # =========================================
 st.subheader("🗺️ Accident Location Map")
 
 col_map_type, col_slider = st.columns([1, 2])
 with col_map_type:
+    # 3 chế độ Bản đồ
     map_style_choice = st.radio("Map Type:", ["Scatter Map", "Heatmap", "Animated (By Hour)"], horizontal=True)
 with col_slider:
     current_total = len(map_df)
@@ -158,6 +163,7 @@ with col_slider:
 
 map_sample = map_df.sample(n=map_points, random_state=42)
 
+# VẼ BẢN ĐỒ
 if map_style_choice == "Scatter Map":
     fig_map = px.scatter_mapbox(
         map_sample, lat="Start_Lat", lon="Start_Lng", color="Severity",
@@ -172,15 +178,18 @@ elif map_style_choice == "Heatmap":
         color_continuous_scale="Reds"
     )
 else:
+    # --- XỬ LÝ ANIMATED MAP ---
+    # Sắp xếp giờ từ 0 -> 23 để thanh animation chạy mượt mà
     map_sample_anim = map_sample.sort_values("Hour") 
     fig_map = px.scatter_mapbox(
         map_sample_anim, lat="Start_Lat", lon="Start_Lng", color="Severity",
-        animation_frame="Hour", 
+        animation_frame="Hour", # Thuộc tính then chốt tạo nút Play
         color_discrete_map={1: '#f0f0f0', 2: '#fee0d2', 3: '#fc9272', 4: '#de2d26'},
         size_max=10, zoom=4.0, mapbox_style="open-street-map", height=650, center=dict(lat=39.8, lon=-98.5)
     )
 
 fig_map.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+# Bật cuộn chuột để zoom bản đồ
 st.plotly_chart(fig_map, use_container_width=True, config={'scrollZoom': True})
 
 st.markdown("---")
