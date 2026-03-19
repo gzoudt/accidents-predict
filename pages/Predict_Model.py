@@ -6,6 +6,86 @@ import numpy as np
 # PAGE CONFIGURATION
 # =========================================
 st.set_page_config(page_title="Severity Prediction", layout="wide", page_icon="🎯")
+# --- COPY ĐOẠN NÀY CHÈN VÀO ĐẦU CẢ 3 FILE (SAU st.set_page_config) ---
+def apply_layered_vibrant_style():
+    # Tạo hiệu ứng nền xám nhẹ, các phần (cards) màu trắng có bóng đổ
+    # Và hiệu ứng chuyển động fade-in nhẹ khi load trang.
+    layered_vibrant_css = """
+    <style>
+        /* 1. Thiết lập nền trang xám nhẹ để làm nổi bật các lớp */
+        [data-testid="stAppViewContainer"] {
+            background-color: #f8f9fa;
+        }
+
+        /* 2. Tạo hiệu ứng bóng đổ (3D layer) cho metric cards (giống Image 2) */
+        [data-testid="stMetricValue"], [data-testid="stMetricLabel"] {
+            /* Tắt bóng đổ mặc định của metrics */
+            background-color: transparent !important;
+            box-shadow: none !important;
+        }
+        
+        /* Áp dụng bóng đổ cho container của metric cards */
+        div[data-testid="stMetricValueContainer"], 
+        [data-testid="stElementContainer"] > div[class*="stMetric"] > div,
+        [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"] > div[class*="stMetric"] {
+            background-color: #ffffff;
+            border-radius: 10px;
+            padding: 15px !important;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+            border: 1px solid #e9ecef;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        div[data-testid="stMetricValueContainer"]:hover {
+             transform: translateY(-3px);
+             box-shadow: 0 7px 14px rgba(0, 0, 0, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08) !important;
+        }
+        
+
+        /* 3. Tạo hiệu ứng 3D layer (Shadow) cho toàn bộ các Section */
+        /* Chúng ta sẽ bao các section trong st.container() và st.markdown(unsafe_allow_html=True) */
+        .layered-card {
+            background-color: #ffffff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+            border: 1px solid #e9ecef;
+            margin-bottom: 25px;
+            transition: transform 0.2s ease-in-out;
+        }
+        .layered-card:hover {
+             transform: translateY(-3px);
+        }
+
+        /* 4. Tùy chỉnh Sidebar để trông chuyên nghiệp hơn */
+        [data-testid="stSidebar"] {
+            border-right: 1px solid #e9ecef;
+            background-color: #ffffff;
+        }
+
+        /* 5. Hiệu ứng chuyển động Fade-in (Sống động hơn) */
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Áp dụng fade-in cho Title chính và các thẻ metrics */
+        h1, [data-testid="stMetricValueContainer"] {
+            animation: fadeIn 0.6s ease-out;
+        }
+        
+        /* 6. Làm cho biểu đồ Plotly vẫn nền trắng chuẩn sạch sẽ */
+        .js-plotly-plot .plotly .main-svg {
+            border-radius: 8px;
+        }
+
+    </style>
+    """
+    st.markdown(layered_vibrant_css, unsafe_allow_html=True)
+
+# Gọi hàm để áp dụng style
+apply_layered_vibrant_style()
+# --- KẾT THÚC ĐOẠN COPY ---
+
 
 st.title("🎯 Traffic Accident Severity Predictor")
 st.markdown("Enter the information below to predict the severity of a traffic accident (**Severity from 1 to 4**).")
