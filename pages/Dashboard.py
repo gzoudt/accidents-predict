@@ -6,7 +6,7 @@ import plotly.express as px
 # =========================================
 # 1. CẤU HÌNH TRANG VÀ GIAO DIỆN
 # =========================================
-st.set_page_config(page_title="US Accidents Analysis", layout="wide")
+st.set_page_config(page_title="US Accidents Dashboard", layout="wide", page_icon="📊")
 px.defaults.template = "plotly_white"
 
 US_STATE_NAMES = {
@@ -58,7 +58,6 @@ df = load_data()
 # =========================================
 st.sidebar.title("Filter Panels")
 
-# Gom toàn bộ bộ lọc vào Form để tối ưu tốc độ load
 with st.sidebar.form(key='filter_form'):
     min_year, max_year = int(df["Year"].min()), int(df["Year"].max())
     start_year, end_year = st.slider("Select Years", min_year, max_year, (min_year, max_year))
@@ -69,7 +68,6 @@ with st.sidebar.form(key='filter_form'):
     available_states = sorted(df['State'].unique())
     selected_states = st.multiselect("States", options=available_states, default=available_states)
 
-    # Nút bấm để áp dụng bộ lọc (Giúp web không bị lag khi chọn nhiều điều kiện cùng lúc)
     submit_button = st.form_submit_button(label='Apply Filters')
 
 # Lọc dữ liệu
@@ -93,7 +91,7 @@ st.sidebar.download_button(
 # =========================================
 # 4. GIAO DIỆN CHÍNH (KPIs)
 # =========================================
-st.title("US Traffic Accidents Analysis")
+st.title("📊 US Traffic Accidents Dashboard")
 st.markdown("---")
 
 k1, k2, k3, k4 = st.columns(4)
@@ -106,7 +104,43 @@ k4.metric("States Affected", f"{filtered_df['State'].nunique()}")
 st.markdown("---")
 
 # =========================================
-# 5. BẢN ĐỒ KẾT QUẢ
+# 5. BIỂU ĐỒ THỐNG KÊ TỔNG QUAN (NEW)
+# =========================================
+st.subheader("Accident Statistics Overview")
+col_stat1, col_stat2 = st.columns(2)
+
+with col_stat1:
+    # Biểu đồ tròn (Donut chart) phân bổ Severity
+    sev_counts = filtered_df['Severity'].value_counts().reset_index()
+    sev_counts.columns = ['Severity', 'Count']
+    sev_counts = sev_counts.sort_values(by='Severity') # Sắp xếp để màu theo thứ tự
+    
+    fig_sev = px.pie(
+        sev_counts, names='Severity', values='Count', 
+        title="Severity Distribution", hole=0.4,
+        color_discrete_sequence=['#fcae91', '#fb6a4a', '#de2d26', '#a50f15'] # Dải màu đỏ
+    )
+    fig_sev.update_traces(textposition='inside', textinfo='percent+label')
+    st.plotly_chart(fig_sev, use_container_width=True)
+
+with col_stat2:
+    # Biểu đồ cột (Bar chart) Top 10 Bang
+    state_counts = filtered_df['State_Full_Name'].value_counts().nlargest(10).reset_index()
+    state_counts.columns = ['State', 'Count']
+    
+    fig_state = px.bar(
+        state_counts, x='State', y='Count', 
+        title="Top 10 States with Most Accidents", 
+        text_auto='.2s', # Hiển thị số rút gọn (vd: 1.5k) trên đầu cột
+        color='Count', color_continuous_scale='Reds'
+    )
+    fig_state.update_layout(xaxis_title="State", yaxis_title="Number of Accidents")
+    st.plotly_chart(fig_state, use_container_width=True)
+
+st.markdown("---")
+
+# =========================================
+# 6. BẢN ĐỒ KẾT QUẢ
 # =========================================
 st.subheader("Accident Location Map")
 
@@ -115,7 +149,6 @@ with col_map_type:
     map_style_choice = st.radio("Map Type:", ["Scatter Map", "Heatmap", "Animated (By Hour)"], horizontal=True)
 with col_slider:
     max_allowed = min(200000, total_count) if total_count > 5000 else total_count
-    # Giảm mức load điểm mặc định xuống 10k để tránh quá tải cho trình duyệt
     def_val = min(10000, total_count)
     map_points = st.slider("Points to display:", min_value=1000 if total_count > 1000 else total_count, max_value=max_allowed, value=def_val, step=1000)
 
@@ -153,7 +186,7 @@ st.plotly_chart(fig_map, use_container_width=True, config={'scrollZoom': True})
 st.markdown("---")
 
 # =========================================
-# 6. BIỂU ĐỒ XU HƯỚNG
+# 7. BIỂU ĐỒ XU HƯỚNG
 # =========================================
 st.subheader("Accident Trends over Time")
 plot_type = st.radio("Show trend by:", ["Total", "Top 10 Cities"], horizontal=True)
@@ -173,7 +206,7 @@ if 'Year_Month' in filtered_df.columns:
 st.markdown("---")
 
 # =========================================
-# 7. BIỂU ĐỒ PHÂN TÍCH PHỤ
+# 8. BIỂU ĐỒ PHÂN TÍCH PHỤ
 # =========================================
 st.subheader("Supplementary Analysis")
 g1, g2 = st.columns(2)
