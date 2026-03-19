@@ -4,30 +4,27 @@ import numpy as np
 import plotly.express as px
 
 st.set_page_config(page_title="Severity Prediction", layout="wide", page_icon="🎯")
+px.defaults.template = "plotly_dark"
 
 # =========================================
-# CSS: HIỆU ỨNG 3D LAYER & FADE-IN
+# CSS: HIỆU ỨNG TỐI CHUYÊN NGHIỆP
 # =========================================
-def apply_layered_vibrant_style():
+def apply_dark_theme_css():
     css = """
     <style>
-        .stApp { background-color: #f8f9fa; }
-        [data-testid="stSidebar"] { background-color: #ffffff; border-right: 1px solid #e9ecef; }
-        [data-testid="stMetricValueContainer"], [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"] > div[class*="stMetric"], .stPlotlyChart, [data-testid="stForm"], [data-testid="stDataFrame"], .stExpander {
-            background-color: #ffffff !important; border-radius: 12px !important; padding: 15px !important;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-            border: 1px solid #e9ecef !important; transition: transform 0.2s, box-shadow 0.2s !important;
+        [data-testid="stMetricValueContainer"], [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"] > div[class*="stMetric"] {
+            background-color: #1e2130 !important; border: 2px solid #3e8ede !important; border-radius: 10px !important; padding: 15px !important; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4) !important; transition: transform 0.2s;
         }
-        [data-testid="stMetricValueContainer"]:hover, .stPlotlyChart:hover, [data-testid="stForm"]:hover {
-             transform: translateY(-4px); box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1) !important;
-        }
+        div[data-testid="stMetricValue"] { color: #3e8ede !important; font-weight: bold; }
+        [data-testid="stForm"], .stExpander { background-color: #1e2130 !important; border: 1px solid #30363d !important; border-radius: 12px !important; padding: 15px !important; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4) !important; transition: transform 0.2s !important; }
+        [data-testid="stMetricValueContainer"]:hover, [data-testid="stForm"]:hover { transform: translateY(-4px); box-shadow: 0 8px 15px rgba(62, 142, 222, 0.15) !important; }
         @keyframes fadeIn { 0% { opacity: 0; transform: translateY(15px); } 100% { opacity: 1; transform: translateY(0); } }
-        h1, h2, h3, [data-testid="stMetricValueContainer"], .stPlotlyChart, [data-testid="stForm"] { animation: fadeIn 0.6s ease-out; }
+        h1, h2, h3, [data-testid="stMetricValueContainer"], [data-testid="stForm"] { animation: fadeIn 0.6s ease-out; }
     </style>
     """
     st.markdown(css, unsafe_allow_html=True)
 
-apply_layered_vibrant_style()
+apply_dark_theme_css()
 
 # =========================================
 # GIAO DIỆN CHÍNH
@@ -77,7 +74,6 @@ if submitted:
         }
         entered_features = {k: v for k, v in input_data.items() if v is not None}
         
-        # Mock Model Logic
         predicted_severity = 2 
         if weather_cond in ["Rain", "Snow", "Fog", "Thunderstorm"]:
             predicted_severity = 3
@@ -89,11 +85,12 @@ if submitted:
             predicted_severity = np.random.choice([2, 3])
 
         st.success("✅ Analysis Complete!")
+        # Đổi nền màu hộp kết quả sang màu Dark Theme
         st.markdown(
             f"""
-            <div style="text-align: center; padding: 20px; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e9ecef;">
-                <h3 style="color: #555;">Predicted Severity Level</h3>
-                <h1 style="color: #FF4B4B; font-size: 60px; margin: 0;">SEVERITY {predicted_severity}</h1>
+            <div style="text-align: center; padding: 20px; background-color: #1e2130; border-radius: 12px; border: 2px solid #de2d26;">
+                <h3 style="color: #e6edf3;">Predicted Severity Level</h3>
+                <h1 style="color: #de2d26; font-size: 60px; margin: 0;">SEVERITY {predicted_severity}</h1>
             </div>
             """, 
             unsafe_allow_html=True
@@ -106,7 +103,7 @@ if submitted:
             with col_chart:
                 st.markdown("**1. Feature Impact (SHAP Values)**")
                 importance_df = pd.DataFrame({'Features': ['Weather Condition', 'Visibility', 'Time (Hour)', 'Traffic Signal'], 'Impact Score': [45.2, 25.8, 15.0, 14.0]})
-                fig_shap = px.bar(importance_df, x='Impact Score', y='Features', orientation='h', color_discrete_sequence=['#FF4B4B'])
+                fig_shap = px.bar(importance_df, x='Impact Score', y='Features', orientation='h', color_discrete_sequence=['#fb6a4a']) # Màu cam điểm nhấn
                 fig_shap.update_layout(yaxis={'categoryorder':'total ascending'}, height=300, margin=dict(l=0, r=0, t=30, b=0))
                 st.plotly_chart(fig_shap, use_container_width=True)
 
@@ -120,6 +117,6 @@ if submitted:
                 
                 if reasons:
                     reason_text = " and ".join(reasons)
-                    st.warning(f"⚠️ **Assessment:** The severity level is predicted to be {predicted_severity} primarily due to {reason_text}. These factors significantly increase the risk of severe injuries and traffic blockages.")
+                    st.warning(f"⚠️ **Assessment:** The severity level is predicted to be {predicted_severity} primarily due to {reason_text}. These factors significantly increase the risk of severe injuries.")
                 else:
-                    st.success(f"✅ **Assessment:** The severity level is predicted to be {predicted_severity}. Environmental conditions are relatively favorable, suggesting the primary cause may be human error or speed.")
+                    st.success(f"✅ **Assessment:** The severity level is predicted to be {predicted_severity}. Environmental conditions are relatively favorable.")

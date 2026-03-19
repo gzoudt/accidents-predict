@@ -3,54 +3,56 @@ import streamlit as st
 st.set_page_config(page_title="US Accidents Analysis & Prediction", page_icon="🚦", layout="wide")
 
 # =========================================
-# CSS: HIỆU ỨNG 3D LAYER & FADE-IN
+# CSS: HIỆU ỨNG TỐI CHUYÊN NGHIỆP & 3D LAYER
 # =========================================
-def apply_layered_vibrant_style():
+def apply_dark_theme_css():
     css = """
     <style>
-        /* Nền xám nhạt cho toàn bộ trang */
-        .stApp { background-color: #f8f9fa; }
+        /* Tùy chỉnh Metric Cards (Giống ảnh bạn gửi) */
+        [data-testid="stMetricValueContainer"], 
+        [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"] > div[class*="stMetric"] {
+            background-color: #1e2130 !important;
+            border: 2px solid #3e8ede !important; /* Viền xanh dương */
+            border-radius: 10px !important;
+            padding: 15px !important;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4) !important;
+            transition: transform 0.2s;
+        }
         
-        /* Sidebar trắng tinh */
-        [data-testid="stSidebar"] {
-            background-color: #ffffff;
-            border-right: 1px solid #e9ecef;
+        div[data-testid="stMetricValue"] {
+            color: #3e8ede !important; /* Số màu xanh dương */
+            font-weight: bold;
         }
 
-        /* Hiệu ứng thẻ nổi 3D (Cards) cho Metrics, Biểu đồ và Form */
-        [data-testid="stMetricValueContainer"], 
-        [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"] > div[class*="stMetric"],
-        .stPlotlyChart, 
-        [data-testid="stForm"], 
-        [data-testid="stDataFrame"],
-        .stExpander {
-            background-color: #ffffff !important;
+        /* Định dạng các khối (Cards) bao quanh Form, Expander */
+        [data-testid="stForm"], .stExpander {
+            background-color: #1e2130 !important;
+            border: 1px solid #30363d !important;
             border-radius: 12px !important;
             padding: 15px !important;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-            border: 1px solid #e9ecef !important;
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out !important;
-        }
-        
-        /* Hiệu ứng bay lên khi hover chuột */
-        [data-testid="stMetricValueContainer"]:hover, .stPlotlyChart:hover, [data-testid="stForm"]:hover {
-             transform: translateY(-4px);
-             box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05) !important;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4) !important;
+            transition: transform 0.2s !important;
         }
 
-        /* Animation Fade-in mượt mà khi load trang */
+        /* Hiệu ứng Hover bay lên */
+        [data-testid="stMetricValueContainer"]:hover, [data-testid="stForm"]:hover {
+             transform: translateY(-4px);
+             box-shadow: 0 8px 15px rgba(62, 142, 222, 0.15) !important; /* Bóng xanh nhẹ */
+        }
+
+        /* Animation Fade-in */
         @keyframes fadeIn {
             0% { opacity: 0; transform: translateY(15px); }
             100% { opacity: 1; transform: translateY(0); }
         }
-        h1, h2, h3, [data-testid="stMetricValueContainer"], .stPlotlyChart {
+        h1, h2, h3, [data-testid="stMetricValueContainer"], [data-testid="stForm"] {
             animation: fadeIn 0.6s ease-out;
         }
     </style>
     """
     st.markdown(css, unsafe_allow_html=True)
 
-apply_layered_vibrant_style()
+apply_dark_theme_css()
 
 # =========================================
 # GIAO DIỆN CHÍNH
