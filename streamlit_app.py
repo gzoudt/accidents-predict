@@ -9,7 +9,8 @@ import plotly.graph_objects as go
 # =========================================
 st.set_page_config(page_title="US Accidents Analysis", layout="wide", page_icon="🚗")
 
-px.defaults.template = "plotly_white"
+# Chuyển mặc định của Plotly sang Dark Theme để biểu đồ trông chuyên nghiệp hơn
+px.defaults.template = "plotly_dark"
 
 # Từ điển ánh xạ mã bang -> tên đầy đủ (dùng cho chú thích)
 US_STATE_NAMES = {
@@ -106,9 +107,9 @@ if filtered_df.empty:
 # =========================================
 # 4. TRANG 1: PHÂN TÍCH TÍCH HỢP
 # =========================================
-tab_analysis, = st.tabs(["Trang 1: Phân tích tích hợp"])
+tabs = st.tabs(["Trang 1: Phân tích tích hợp"])
 
-with tab_analysis:
+with tabs[0]:
     
     # --- 4.1 KPIs (Ảnh 2) ---
     st.subheader(f"🌐 US Accidents Overview: {start_year} - {end_year}")
@@ -146,24 +147,23 @@ with tab_analysis:
         lat="Start_Lat",
         lon="Start_Lng",
         color="Severity",
-        # Thang màu Severity đỏ
         color_discrete_map={1: '#f0f0f0', 2: '#fee0d2', 3: '#fc9272', 4: '#de2d26'},
         size_max=10,
-        zoom=3,
-        mapbox_style="open-street-map",
+        zoom=4.5, # Đã tăng độ zoom từ 3 lên 4.5
+        mapbox_style="carto-darkmatter", # Đổi sang nền bản đồ tối để khớp với giao diện
         height=650,
         center=dict(lat=39.8283, lon=-98.5795),
         
         # --- YÊU CẦU 2: CHÚ THÍCH TÊN BANG (FULL NAME) TRONG HOVER ---
-        hover_name="State_Full_Name", # Hiển thị tên đầy đủ in đậm hàng đầu tiên
+        hover_name="State_Full_Name", 
         hover_data={
-            "State": True, # Hiển thị mã bang
+            "State": True, 
             "City": True,
             "Weather_Condition": True,
             "Temperature(C)": ":.1f",
             "Severity": True,
-            "Start_Lat": False, # Ẩn vĩ độ
-            "Start_Lng": False # Ẩn kinh độ
+            "Start_Lat": False, 
+            "Start_Lng": False 
         }
     )
     fig_map.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
