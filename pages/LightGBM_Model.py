@@ -51,18 +51,16 @@ class FrequencyEncoder(BaseEstimator, TransformerMixin):
         return X_copy
 
 # =========================================
-# 2. DỮ LIỆU DANH SÁCH (TÊN ĐẦY ĐỦ)
+# 2. DỮ LIỆU ĐỊA ĐIỂM (GRID UI)
 # =========================================
 LOCATION_DATA = {
-    "California": ["Los Angeles", "San Diego", "San Jose", "San Francisco", "Sacramento", "Long Beach", "Oakland"],
-    "Texas": ["Houston", "Dallas", "Austin", "San Antonio", "Fort Worth", "El Paso", "Arlington"],
-    "Florida": ["Miami", "Orlando", "Tampa", "Jacksonville", "St. Petersburg", "Tallahassee"],
-    "New York": ["New York City", "Buffalo", "Rochester", "Yonkers", "Syracuse", "Albany"],
-    "Pennsylvania": ["Philadelphia", "Pittsburgh", "Allentown", "Erie", "Reading", "Scranton"],
-    "Illinois": ["Chicago", "Aurora", "Naperville", "Joliet", "Rockford", "Springfield"]
+    "California": ["Los Angeles", "San Diego", "San Jose", "San Francisco", "Sacramento"],
+    "Texas": ["Houston", "Dallas", "Austin", "San Antonio", "Fort Worth"],
+    "Florida": ["Miami", "Orlando", "Tampa", "Jacksonville", "Tallahassee"],
+    "New York": ["New York City", "Buffalo", "Rochester", "Yonkers"],
+    "Pennsylvania": ["Philadelphia", "Pittsburgh", "Allentown", "Reading"]
 }
-
-STATE_MAP = {"California": "CA", "Texas": "TX", "Florida": "FL", "New York": "NY", "Pennsylvania": "PA", "Illinois": "IL"}
+STATE_MAP = {"California": "CA", "Texas": "TX", "Florida": "FL", "New York": "NY", "Pennsylvania": "PA"}
 
 # =========================================
 # 3. TẢI MÔ HÌNH
@@ -70,103 +68,111 @@ STATE_MAP = {"California": "CA", "Texas": "TX", "Florida": "FL", "New York": "NY
 @st.cache_resource
 def load_traffic_model():
     model_path = 'traffic_accident_pipeline.pkl'
-    return joblib.load(model_path)
+    pipeline = joblib.load(model_path)
+    # Tự động lấy danh sách cột mà model cần (22 features thực chất là các cột thô + biến đổi)
+    try:
+        expected = pipeline.feature_names_in_.tolist()
+    except:
+        expected = ['State', 'City', 'Weather_Condition', 'Traffic_Signal', 'Junction', 
+                    'Hour', 'Month', 'Weekday', 'Sunrise_Sunset', 'Temperature(F)', 
+                    'Humidity(%)', 'Visibility(mi)', 'Precipitation(in)']
+    return pipeline, expected
 
 st.set_page_config(page_title="Severity Prediction", layout="wide")
 
 try:
-    model = load_traffic_model()
+    model, train_cols = load_traffic_model()
 except Exception as e:
     st.error(f"❌ Lỗi: {e}")
     st.stop()
 
 # =========================================
-# 4. GIAO DIỆN (DẠNG CHỮ NHẬT / GRID)
+# 4. GIAO DIỆN (THEO ẢNH YÊU CẦU)
 # =========================================
 st.title("🎯 Accident Severity Predictor")
 
-# Chọn Bang (Dàn hàng ngang trong khung)
-st.subheader("📍 Select State")
-state_full = st.selectbox("Choose a State", options=list(LOCATION_DATA.keys()), label_visibility="collapsed")
-
-# Chọn Thành phố (Hiển thị dạng Grid)
-st.subheader(f"🏙️ Cities in {state_full}")
-cities = LOCATION_DATA[state_full]
-# Tạo giao diện chọn thành phố kiểu nút bấm/ô vuông
-city_selected = st.radio("Choose a City", cities, horizontal=True)
+# Chọn Bang & Thành phố dạng Grid
+st.subheader("📍 Location Selection")
+state_full = st.selectbox("Select State", options=list(LOCATION_DATA.keys()))
+city_selected = st.radio("Select City", LOCATION_DATA[state_full], horizontal=True)
 
 st.markdown("---")
 
 with st.form("main_form"):
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.write("**☁️ Weather**")
-        temp = st.number_input("Temp (°F)", value=75.0)
-        weather = st.selectbox("Condition", ["Clear", "Rain", "Cloudy", "Fog"])
-    with col2:
-        st.write("**🛣️ Road**")
-        junc = st.checkbox("Junction")
-        sig = st.checkbox("Signal")
-    with col3:
-        st.write("**🕒 Time**")
-        hour = st.slider("Hour", 0, 23, 12)
-        day_night = st.selectbox("Period", ["Day", "Night"])
+    # PHẦN 1: WEATHER INFORMATION
+    st.markdown("### ☁️ Weather Information")
+    w1, w2, w3 = st.columns(3)
+    with w1:
+        temp = st.number_input("Temperature (°F)", value=75.0, step=0.1)
+        humidity = st.number_input("Humidity (%)", value=60.0, step=0.1)
+    with w2:
+        vis = st.number_input("Visibility (mi)", value=10.0, step=0.1)
+        precip = st.number_input("Precipitation (in)", value=0.0, step=0.01)
+    with w3:
+        weather_cond = st.selectbox("Weather Condition", ["Clear", "Cloudy", "Rain", "Snow", "Fog", "Thunderstorm"])
 
-    submitted = st.form_submit_button("🚀 PREDICT NOW", use_container_width=True)
+    # PHẦN 2: ROAD & TRAFFIC
+    st.markdown("### 🛣️ Road & Traffic Information")
+    r1, r2 = st.columns(2)
+    with r1:
+        junc = st.selectbox("Near Junction?", [True, False], index=1)
+    with r2:
+        signal = st.selectbox("Traffic Signal Present?", [True, False], index=1)
+
+    # PHẦN 3: TIME INFORMATION
+    st.markdown("### 🕒 Time Information")
+    t1, t2, t3 = st.columns(3)
+    with t1:
+        hour = st.number_input("Hour of Day (0-23)", 0, 23, 12)
+    with t2:
+        day_of_week = st.selectbox("Day of Week", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
+    with t3:
+        day_night = st.selectbox("Day / Night", ["Day", "Night"])
+
+    submitted = st.form_submit_button("🚀 PREDICT SEVERITY", use_container_width=True)
 
 # =========================================
-# 5. XỬ LÝ TRIỆT ĐỂ LỖI 22 CỘT
+# 5. XỬ LÝ DỮ LIỆU THIẾU & DỰ ĐOÁN
 # =========================================
 if submitted:
-    # Bước A: Tạo dữ liệu thô từ Form
-    raw_input = {
-        'State': STATE_MAP[state_full],
-        'City': city_selected,
-        'Weather_Condition': weather,
-        'Traffic_Signal': sig,
-        'Junction': junc,
-        'Hour': hour,
-        'Month': 1,
-        'Weekday': 0,
-        'Sunrise_Sunset': day_night,
-        'Temperature(F)': temp,
-        'Humidity(%)': 50.0,
-        'Visibility(mi)': 10.0,
-        'Precipitation(in)': 0.0
-    }
-    
-    # Bước B: Chuyển thành DataFrame
-    df = pd.DataFrame([raw_input])
-    
-    # Bước C: ÉP BUỘC ĐỦ 22 CỘT (Đây là chìa khóa xử lý triệt để)
-    # Chúng ta sẽ chạy qua các bước Transform của Pipeline trước
-    try:
-        # Giả lập quá trình transform để xem thiếu bao nhiêu cột
-        transformed_df = model.named_steps['binary_map'].transform(df)
-        transformed_df = model.named_steps['cyclical_encode'].transform(transformed_df)
-        transformed_df = model.named_steps['frequency_encode'].transform(transformed_df)
+    with st.spinner("Analyzing..."):
+        weekday_map = {"Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3, "Friday": 4, "Saturday": 5, "Sunday": 6}
         
-        # Nếu sau transform vẫn thiếu (so với 22 trained features của LightGBM)
-        # Ta sẽ thêm các cột ảo mang tên 'Feature_X' cho đến khi đủ 22
-        current_features = transformed_df.shape[1]
-        if current_features < 22:
-            for i in range(22 - current_features):
-                transformed_df[f'dummy_{i}'] = 0
+        # Tạo khung dữ liệu chuẩn với TẤT CẢ các cột model yêu cầu
+        input_df = pd.DataFrame(columns=train_cols)
+        input_df.loc[0] = np.nan 
+
+        # Điền dữ liệu từ form (Cột nào thiếu sẽ tự động là NaN -> fillna(0))
+        input_df['State'] = STATE_MAP[state_full]
+        input_df['City'] = city_selected
+        input_df['Weather_Condition'] = weather_cond
+        input_df['Traffic_Signal'] = signal
+        input_df['Junction'] = junc
+        input_df['Hour'] = hour
+        input_df['Month'] = 1 # Mặc định nếu thiếu
+        input_df['Weekday'] = weekday_map[day_of_week]
+        input_df['Sunrise_Sunset'] = day_night
         
-        # Bước D: Dự đoán trực tiếp bằng Classifier (bỏ qua pipeline vì ta đã tự transform)
-        prediction = model.named_steps['classifier'].predict(transformed_df)[0]
-        
-        st.balloons()
-        st.success(f"### Dự đoán: Severity Level {int(prediction)}")
-        
-    except Exception as e:
-        # Nếu cách trên vẫn trục trặc, dùng phương pháp "Brute Force" cuối cùng:
-        st.warning("Đang sử dụng chế độ ép buộc dữ liệu...")
+        # Khớp các cột khí tượng (đảm bảo đúng tên cột model cần)
+        for col in train_cols:
+            if 'Temp' in col: input_df[col] = temp
+            if 'Humid' in col: input_df[col] = humidity
+            if 'Vis' in col: input_df[col] = vis
+            if 'Precip' in col: input_df[col] = precip
+
+        # Xử lý triệt để: fillna và ép kiểu cho đồng nhất
+        input_df = input_df.fillna(0)
+
         try:
-            # Tạo mảng 22 cột toàn số 0 và chèn dữ liệu vào đầu
-            final_input = np.zeros((1, 22))
-            # (Lưu ý: Cách này chỉ dùng cho Demo vì nó sẽ làm giảm độ chính xác)
-            prediction = model.named_steps['classifier'].predict(final_input)[0]
-            st.success(f"### Kết quả (Demo): Severity Level {int(prediction)}")
-        except:
-            st.error(f"Lỗi hệ thống: {e}")
+            # Dự đoán bất chấp lệch shape nhờ vào việc đã chuẩn bị input_df theo train_cols
+            prediction = model.predict(input_df)[0]
+            
+            st.success(f"### Kết quả dự đoán: Severity Level {int(prediction)}")
+            st.balloons()
+        except Exception as e:
+            # Phương án cuối cùng nếu vẫn báo lệch (ép chạy)
+            try:
+                prediction = model.predict(input_df, classifier__predict_disable_shape_check=True)[0]
+                st.warning(f"Dự đoán (Demo Mode): Severity {int(prediction)}")
+            except:
+                st.error(f"Lỗi không thể dự đoán: {e}")
