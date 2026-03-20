@@ -4,3 +4,5 @@ numpy
 plotly
 pyarrow
 setuptools
+joblib
+scikit-learn
