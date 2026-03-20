@@ -88,16 +88,22 @@ except Exception as e:
     st.stop()
 
 # =========================================
-# 4. MAIN INTERFACE (ENGLISH)
+# 4. MAIN INTERFACE (FIXED CITY UPDATE)
 # =========================================
 st.title("🎯 Traffic Accident Severity Predictor")
-st.info("💡 **Tip:** You can leave any field blank if you don't have the information. The model will handle missing values automatically.")
+st.info("💡 **Tip:** Select a State, and the City list will update immediately. Then fill other details and click Predict.")
 
-with st.form("main_form"):
-    st.subheader("📍 Location Information")
+# --- ĐỊA ĐIỂM (NẰM NGOÀI FORM ĐỂ CẬP NHẬT TỨC THÌ) ---
+st.subheader("📍 Location Information")
+l1, l2 = st.columns([1, 2])
+with l1:
     state_full = st.selectbox("Select State", options=list(LOCATION_MAP.keys()))
-    city_selected = st.radio("Select City", LOCATION_MAP[state_full], horizontal=True)
+with l2:
+    # City sẽ tự động đổi list options dựa theo state_full ngay khi chọn lại State
+    city_selected = st.radio("Select City", options=LOCATION_MAP[state_full], horizontal=True)
 
+# --- CÁC THÔNG SỐ KHÁC (NẰM TRONG FORM) ---
+with st.form("main_form"):
     st.subheader("☁️ Weather Information")
     w1, w2, w3 = st.columns(3)
     with w1:
@@ -123,7 +129,7 @@ with st.form("main_form"):
     submitted = st.form_submit_button("🚀 PREDICT SEVERITY", type="primary", use_container_width=True)
 
 # =========================================
-# 5. PREDICTION & SHAPE FIX
+# 5. PREDICTION LOGIC
 # =========================================
 if submitted:
     weekday_map = {"Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3, "Friday": 4, "Saturday": 5, "Sunday": 6}
@@ -150,7 +156,7 @@ if submitted:
         transformed = model.named_steps['cyclical_encode'].transform(transformed)
         transformed = model.named_steps['frequency_encode'].transform(transformed)
         
-        # Force 22 features (Fill missing columns with 0)
+        # Force features (Fill missing columns with 0)
         if final_cols is not None:
             final_input = transformed.reindex(columns=final_cols, fill_value=0)
         else:
@@ -159,7 +165,7 @@ if submitted:
         # Prediction
         prediction = model.named_steps['classifier'].predict(final_input)[0]
         
-        # Simple Result Display
+        # Result Display
         st.markdown(f"""
             <div style="text-align: center; padding: 20px; background-color: #f8f9fa; border-radius: 10px; border: 2px solid #e9ecef; margin: 20px 0;">
                 <h3 style="color: #555;">Predicted Severity Level</h3>
@@ -167,10 +173,10 @@ if submitted:
             </div>
         """, unsafe_allow_html=True)
 
-        # Basic Summary Instead of AI Analysis
+        # Summary
         st.subheader("📝 Summary of Input")
         cols = st.columns(3)
-        cols[0].write(f"**City:** {city_selected}, {STATE_ABBR[state_full]}")
+        cols[0].write(f"**Location:** {city_selected}, {STATE_ABBR[state_full]}")
         cols[1].write(f"**Weather:** {weather_cond}")
         cols[2].write(f"**Time:** {hour}:00 ({day_night})")
 
