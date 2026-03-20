@@ -99,7 +99,6 @@ l1, l2 = st.columns([1, 2])
 with l1:
     state_full = st.selectbox("Select State", options=list(LOCATION_MAP.keys()))
 with l2:
-    # City sẽ tự động đổi list options dựa theo state_full ngay khi chọn lại State
     city_selected = st.radio("Select City", options=LOCATION_MAP[state_full], horizontal=True)
 
 # --- CÁC THÔNG SỐ KHÁC (NẰM TRONG FORM) ---
@@ -129,7 +128,7 @@ with st.form("main_form"):
     submitted = st.form_submit_button("🚀 PREDICT SEVERITY", type="primary", use_container_width=True)
 
 # =========================================
-# 5. PREDICTION LOGIC
+# 5. PREDICTION LOGIC & SUMMARY
 # =========================================
 if submitted:
     weekday_map = {"Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3, "Friday": 4, "Saturday": 5, "Sunday": 6}
@@ -156,7 +155,6 @@ if submitted:
         transformed = model.named_steps['cyclical_encode'].transform(transformed)
         transformed = model.named_steps['frequency_encode'].transform(transformed)
         
-        # Force features (Fill missing columns with 0)
         if final_cols is not None:
             final_input = transformed.reindex(columns=final_cols, fill_value=0)
         else:
@@ -173,12 +171,34 @@ if submitted:
             </div>
         """, unsafe_allow_html=True)
 
-        # Summary
+        # FULL SUMMARY DISPLAY
         st.subheader("📝 Summary of Input")
-        cols = st.columns(3)
-        cols[0].write(f"**Location:** {city_selected}, {STATE_ABBR[state_full]}")
-        cols[1].write(f"**Weather:** {weather_cond}")
-        cols[2].write(f"**Time:** {hour}:00 ({day_night})")
+        s1, s2, s3, s4 = st.columns(4)
+        
+        with s1:
+            st.markdown("**📍 Location**")
+            st.write(f"City: `{city_selected}`")
+            st.write(f"State: `{STATE_ABBR[state_full]}`")
+            
+        with s2:
+            st.markdown("**☁️ Weather**")
+            st.write(f"Condition: `{weather_cond}`")
+            st.write(f"Temp: `{temp}°F`")
+            st.write(f"Humidity: `{humid}%`")
+            
+        with s3:
+            st.markdown("**🕒 Time & Date**")
+            st.write(f"Time: `{hour}:00`")
+            st.write(f"Period: `{day_night}`")
+            st.write(f"Day: `{day_week}`")
+            
+        with s4:
+            st.markdown("**🛣️ Infrastructure**")
+            st.write(f"Junction: `{'Yes' if junc else 'No'}`")
+            st.write(f"Signal: `{'Yes' if signal else 'No'}`")
+            st.write(f"Visibility: `{vis} mi`")
+
+        st.divider()
 
     except Exception as e:
         st.error(f"Prediction Error: {e}")
