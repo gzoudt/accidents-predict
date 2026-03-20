@@ -3,16 +3,17 @@ import streamlit as st
 st.set_page_config(page_title="US Accidents Analysis & Prediction", page_icon="🚦", layout="wide")
 
 # =========================================
-# CSS: ĐÓNG KHUNG KPI ĐẸP MẮT
+# CSS: ĐÓNG KHUNG KPI ĐẸP MẮT (LIGHT MODE)
 # =========================================
 st.markdown("""
 <style>
+    /* Tự động đóng khung tất cả các thẻ st.metric */
     div[data-testid="stMetric"] {
-        border: 1px solid #dcdcdc;
-        border-radius: 10px;
-        padding: 15px 20px;
-        background-color: #ffffff;
-        box-shadow: 2px 2px 8px rgba(0,0,0,0.04);
+        border: 1px solid #dcdcdc;     /* Viền xám nhẹ */
+        border-radius: 10px;           /* Bo góc 10px */
+        padding: 15px 20px;            /* Khoảng cách chữ và viền */
+        background-color: #ffffff;     /* Nền trắng tinh */
+        box-shadow: 2px 2px 8px rgba(0,0,0,0.04); /* Bóng đổ cực mờ tạo chiều sâu nhẹ */
     }
 </style>
 """, unsafe_allow_html=True)
@@ -36,30 +37,29 @@ col1, col2 = st.columns(2)
 with col1:
     st.info("""
     ### 📊 1. Data Dashboard
+    *(Chuyển sang trang **Dashboard** ở thanh bên trái)*
+    
     Phân tích trực quan dữ liệu lịch sử thông qua các biểu đồ tương tác:
     * **Bản đồ tai nạn (Map):** Khám phá vị trí và mật độ tai nạn.
     * **Interactive Charts:** Tải dữ liệu và xem các thống kê tổng quan.
     * **Phân tích xu hướng:** Sự ảnh hưởng của thời tiết, thời gian.
     """)
-    # NÚT BẤM TRỰC TIẾP ĐỂ QUA TRANG DASHBOARD
-    # Lưu ý: "pages/1_Dashboard.py" phải đúng đường dẫn file của bạn
-    st.page_link("pages/1_Dashboard.py", label="👉 Truy cập Dashboard ngay", icon="📊", use_container_width=True)
 
 with col2:
     st.success("""
     ### 🔮 2. AI Prediction Model
+    *(Chuyển sang trang **Predict Model** ở thanh bên trái)*
+    
     Sử dụng Trí tuệ nhân tạo (Machine Learning) để dự đoán:
-    * **Dự báo Severity:** Nhập thông số để dự đoán mức độ nghiêm trọng.
+    * **Dự báo Severity:** Nhập thông số để dự đoán mức độ nghiêm trọng (1-4).
     * **Missing Data Handling:** Cho phép để trống thông tin linh hoạt.
     * **Explainable AI (XAI):** Biểu đồ giải thích lý do AI đưa ra quyết định.
     """)
-    # NÚT BẤM TRỰC TIẾP ĐỂ QUA TRANG PREDICT MODEL
-    st.page_link("pages/2_Predict_Model.py", label="👉 Thử nghiệm AI Predict ngay", icon="🔮", use_container_width=True)
 
 st.markdown("---")
 
 # =========================================
-# CÁC THÔNG SỐ DATASET
+# CÁC THÔNG SỐ SẼ TỰ ĐỘNG ĐƯỢC ĐÓNG KHUNG
 # =========================================
 st.subheader("📊 Số liệu Dataset tổng quan")
 c1, c2, c3, c4 = st.columns(4)
