@@ -91,7 +91,7 @@ except Exception as e:
 # 4. MAIN INTERFACE (FIXED CITY UPDATE)
 # =========================================
 st.title("🎯 Traffic Accident Severity Predictor")
-st.info("💡 **Tip:** Select a State, and the City list will update immediately. Then fill other details and click Predict.")
+st.info("💡 **Tip:** You can leave any field blank if you don't have the information. The model will handle missing values automatically.")
 
 # --- ĐỊA ĐIỂM (NẰM NGOÀI FORM ĐỂ CẬP NHẬT TỨC THÌ) ---
 st.subheader("📍 Location Information")
