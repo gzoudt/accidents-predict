@@ -3,67 +3,67 @@ import streamlit as st
 st.set_page_config(page_title="US Accidents Analysis & Prediction", page_icon="🚦", layout="wide")
 
 # =========================================
-# CSS: ĐÓNG KHUNG KPI ĐẸP MẮT (LIGHT MODE)
+# CSS: BEAUTIFUL KPI FRAMES (LIGHT MODE)
 # =========================================
 st.markdown("""
 <style>
-    /* Tự động đóng khung tất cả các thẻ st.metric */
+    /* Automatically frame all st.metric tags */
     div[data-testid="stMetric"] {
-        border: 1px solid #dcdcdc;     /* Viền xám nhẹ */
-        border-radius: 10px;           /* Bo góc 10px */
-        padding: 15px 20px;            /* Khoảng cách chữ và viền */
-        background-color: #ffffff;     /* Nền trắng tinh */
-        box-shadow: 2px 2px 8px rgba(0,0,0,0.04); /* Bóng đổ cực mờ tạo chiều sâu nhẹ */
+        border: 1px solid #dcdcdc;      /* Light gray border */
+        border-radius: 10px;            /* 10px rounded corners */
+        padding: 15px 20px;             /* Padding between text and border */
+        background-color: #ffffff;      /* Pure white background */
+        box-shadow: 2px 2px 8px rgba(0,0,0,0.04); /* Subtle shadow for depth */
     }
 </style>
 """, unsafe_allow_html=True)
 
 # =========================================
-# GIAO DIỆN CHÍNH
+# MAIN INTERFACE
 # =========================================
 st.title("🚦 US Traffic Accidents Analysis & Prediction")
 st.markdown("---")
 
 st.markdown("""
-**Chào mừng bạn đến với Hệ thống Phân tích và Dự báo Tai nạn Giao thông tại Mỹ!** 🇺🇸
+**Welcome to the US Traffic Accident Analysis and Prediction System!** 🇺🇸
 
-Ứng dụng này được xây dựng nhằm mục đích khai phá dữ liệu từ hàng triệu vụ tai nạn giao thông trên toàn nước Mỹ, từ đó tìm ra các quy luật, điểm nóng và ứng dụng **Machine Learning** để dự báo mức độ nghiêm trọng của các vụ tai nạn trong tương lai.
+This application is built to explore data from millions of traffic accidents across the United States, identifying patterns, hotspots, and utilizing **Machine Learning** to predict the severity of accidents in the future.
 """)
 st.write("")
 
-st.subheader("🌟 Khám phá các tính năng chính")
+st.subheader("🌟 Explore Key Features")
 col1, col2 = st.columns(2)
 
 with col1:
     st.info("""
     ### 📊 1. Data Dashboard
-    *(Chuyển sang trang **Dashboard** ở thanh bên trái)*
+    *(Switch to the **Dashboard** page on the left sidebar)*
     
-    Phân tích trực quan dữ liệu lịch sử thông qua các biểu đồ tương tác:
-    * **Bản đồ tai nạn (Map):** Khám phá vị trí và mật độ tai nạn.
-    * **Interactive Charts:** Tải dữ liệu và xem các thống kê tổng quan.
-    * **Phân tích xu hướng:** Sự ảnh hưởng của thời tiết, thời gian.
+    Visually analyze historical data through interactive charts:
+    * **Accident Map:** Explore accident locations and density.
+    * **Interactive Charts:** Load data and view overview statistics.
+    * **Trend Analysis:** Influence of weather and time.
     """)
 
 with col2:
     st.success("""
     ### 🔮 2. AI Prediction Model
-    *(Chuyển sang trang **Predict Model** ở thanh bên trái)*
+    *(Switch to the **Predict Model** page on the left sidebar)*
     
-    Sử dụng Trí tuệ nhân tạo (Machine Learning) để dự đoán:
-    * **Dự báo Severity:** Nhập thông số để dự đoán mức độ nghiêm trọng (1-4).
-    * **Missing Data Handling:** Cho phép để trống thông tin linh hoạt.
-    * **Explainable AI (XAI):** Biểu đồ giải thích lý do AI đưa ra quyết định.
+    Utilize Artificial Intelligence (Machine Learning) to predict:
+    * **Severity Prediction:** Enter parameters to predict severity (1-4).
+    * **Missing Data Handling:** Allows for flexible information input.
+    * **Explainable AI (XAI):** Charts explaining the reasons behind AI decisions.
     """)
 
 st.markdown("---")
 
 # =========================================
-# CÁC THÔNG SỐ SẼ TỰ ĐỘNG ĐƯỢC ĐÓNG KHUNG
+# DATASET OVERVIEW METRICS
 # =========================================
-st.subheader("📊 Số liệu Dataset tổng quan")
+st.subheader("📊 General Dataset Statistics")
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("Tổng vụ tai nạn", "3.1M+")
-c2.metric("Thời gian thu thập", "2016 - 2023")
-c3.metric("Số lượng Bang", "49 (Mỹ)")
-c4.metric("Các yếu tố (Features)", "40+")
+c1.metric("Total Accidents", "3.1M+")
+c2.metric("Collection Period", "2016 - 2023")
+c3.metric("Number of States", "49 (USA)")
+c4.metric("Total Features", "40+")

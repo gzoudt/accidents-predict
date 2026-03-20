@@ -3,11 +3,10 @@ import pandas as pd
 import numpy as np
 import joblib
 import os
-import plotly.express as px
 from sklearn.base import BaseEstimator, TransformerMixin
 
 # ==========================================
-# 1. ĐỊNH NGHĨA CLASS (Giữ nguyên để load model)
+# 1. CLASS DEFINITIONS (Required to load model)
 # ==========================================
 class BinaryMapper(BaseEstimator, TransformerMixin):
     def __init__(self, bool_cols, sunset_col='Sunrise_Sunset'):
@@ -52,29 +51,23 @@ class FrequencyEncoder(BaseEstimator, TransformerMixin):
         return X_copy
 
 # =========================================
-# 2. TẢI MÔ HÌNH & TRÍCH XUẤT FEATURE DANH SÁCH
+# 2. LOAD MODEL & FEATURE NAMES
 # =========================================
 @st.cache_resource
 def load_traffic_model():
     model_path = 'traffic_accident_pipeline.pkl'
     pipeline = joblib.load(model_path)
-    
-    # Lấy danh sách chính xác các cột mà LightGBM/XGBoost mong đợi
     try:
-        # Thử lấy từ classifier trong pipeline
         if hasattr(pipeline.named_steps['classifier'], 'feature_name_'):
             trained_features = pipeline.named_steps['classifier'].feature_name_
         else:
-            # Fallback cho XGBoost hoặc phiên bản khác
             trained_features = pipeline.named_steps['classifier'].get_booster().feature_names
     except:
-        st.warning("Could not auto-detect feature names. Using manual fix.")
         trained_features = None
-        
     return pipeline, trained_features
 
 # =========================================
-# 3. DỮ LIỆU ĐỊA ĐIỂM
+# 3. LOCATION DATA
 # =========================================
 LOCATION_MAP = {
     "California": ["Los Angeles", "San Diego", "San Jose", "San Francisco"],
@@ -85,19 +78,20 @@ LOCATION_MAP = {
 }
 STATE_ABBR = {"California": "CA", "Texas": "TX", "Florida": "FL", "New York": "NY", "Pennsylvania": "PA"}
 
+# App Config
 st.set_page_config(page_title="Severity Prediction", layout="wide", page_icon="🎯")
 
 try:
     model, final_cols = load_traffic_model()
 except Exception as e:
-    st.error(f"❌ Load lỗi: {e}")
+    st.error(f"❌ Load Error: {e}")
     st.stop()
 
 # =========================================
-# 4. GIAO DIỆN CHÍNH
+# 4. MAIN INTERFACE (ENGLISH)
 # =========================================
 st.title("🎯 Traffic Accident Severity Predictor")
-st.info("💡 **Tip:** Fill in the details. The model will automatically handle the 22-feature requirement.")
+st.info("💡 **Tip:** You can leave any field blank if you don't have the information. The model will handle missing values automatically.")
 
 with st.form("main_form"):
     st.subheader("📍 Location Information")
@@ -129,12 +123,11 @@ with st.form("main_form"):
     submitted = st.form_submit_button("🚀 PREDICT SEVERITY", type="primary", use_container_width=True)
 
 # =========================================
-# 5. DỰ ĐOÁN & XỬ LÝ LỆCH CỘT
+# 5. PREDICTION & SHAPE FIX
 # =========================================
 if submitted:
     weekday_map = {"Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3, "Friday": 4, "Saturday": 5, "Sunday": 6}
     
-    # 1. Tạo DataFrame gốc từ input người dùng
     raw_df = pd.DataFrame([{
         'State': STATE_ABBR[state_full],
         'City': city_selected,
@@ -152,26 +145,21 @@ if submitted:
     }])
 
     try:
-        # 2. Chạy qua các bước Transformer (Trừ bước classifier cuối)
-        # Cách này giúp dữ liệu được mã hóa y hệt lúc train
+        # Transformation pipeline
         transformed = model.named_steps['binary_map'].transform(raw_df)
         transformed = model.named_steps['cyclical_encode'].transform(transformed)
         transformed = model.named_steps['frequency_encode'].transform(transformed)
         
-        # 3. FIX LỖI 22 FEATURES: 
-        # Reindex sẽ thêm các cột thiếu (điền 0) và loại bỏ cột thừa (nếu có)
-        # đảm bảo đúng thứ tự và số lượng mà model yêu cầu.
+        # Force 22 features (Fill missing columns with 0)
         if final_cols is not None:
             final_input = transformed.reindex(columns=final_cols, fill_value=0)
         else:
-            # Nếu không lấy được final_cols, ta dùng predict_disable_shape_check=true 
-            # (Chỉ áp dụng nếu model là LightGBM thuần, ở đây ta ưu tiên reindex)
             final_input = transformed
 
-        # 4. Dự đoán trực tiếp bằng Classifier
+        # Prediction
         prediction = model.named_steps['classifier'].predict(final_input)[0]
         
-        # 5. Hiển thị Kết quả
+        # Simple Result Display
         st.markdown(f"""
             <div style="text-align: center; padding: 20px; background-color: #f8f9fa; border-radius: 10px; border: 2px solid #e9ecef; margin: 20px 0;">
                 <h3 style="color: #555;">Predicted Severity Level</h3>
@@ -179,13 +167,12 @@ if submitted:
             </div>
         """, unsafe_allow_html=True)
 
-        # AI Analysis (Giữ nguyên phần trang trí của bạn)
-        st.subheader("🔍 AI Analysis")
-        with st.expander("Details", expanded=True):
-            st.write(f"- Weather: **{weather_cond}**")
-            st.write(f"- Traffic Signal: **{signal}**")
-            st.write(f"- Final Features Sent to Model: **{final_input.shape[1]}**")
+        # Basic Summary Instead of AI Analysis
+        st.subheader("📝 Summary of Input")
+        cols = st.columns(3)
+        cols[0].write(f"**City:** {city_selected}, {STATE_ABBR[state_full]}")
+        cols[1].write(f"**Weather:** {weather_cond}")
+        cols[2].write(f"**Time:** {hour}:00 ({day_night})")
 
     except Exception as e:
-        st.error(f"Lỗi dự đoán: {e}")
-        st.info("Kiểm tra lại số lượng đặc trưng đầu vào so với lúc training.")
+        st.error(f"Prediction Error: {e}")
