@@ -1,13 +1,12 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly.express as px
 import joblib
 import os
 from sklearn.base import BaseEstimator, TransformerMixin
 
 # ==========================================
-# 1. ĐỊNH NGHĨA CLASS (Phải trùng khớp với lúc Train)
+# 1. ĐỊNH NGHĨA CLASS (Giữ nguyên để load model)
 # ==========================================
 class BinaryMapper(BaseEstimator, TransformerMixin):
     def __init__(self, bool_cols, sunset_col='Sunrise_Sunset'):
@@ -52,91 +51,85 @@ class FrequencyEncoder(BaseEstimator, TransformerMixin):
         return X_copy
 
 # =========================================
-# 2. TẢI MÔ HÌNH
+# 2. TẢI MÔ HÌNH & KIỂM TRA CỘT ĐÀO TẠO
 # =========================================
 @st.cache_resource
 def load_traffic_model():
-    model_path = os.path.join(os.path.dirname(__file__), 'traffic_accident_pipeline.pkl')
-    if not os.path.exists(model_path):
-        model_path = 'traffic_accident_pipeline.pkl'
-    return joblib.load(model_path)
+    model_path = 'traffic_accident_pipeline.pkl'
+    pipeline = joblib.load(model_path)
+    
+    # Lấy danh sách các cột mà model yêu cầu (Cực kỳ quan trọng)
+    # Pipeline thường lưu tên cột ban đầu trong thuộc tính feature_names_in_
+    try:
+        expected_cols = pipeline.feature_names_in_.tolist()
+    except:
+        # Nếu không lấy được tự động, liệt kê thủ công các cột lúc bạn Train
+        expected_cols = ['State', 'City', 'Weather_Condition', 'Traffic_Signal', 
+                         'Junction', 'Hour', 'Month', 'Weekday', 'Sunrise_Sunset',
+                         'Temperature(F)', 'Humidity(%)', 'Visibility(mi)', 'Precipitation(in)']
+    return pipeline, expected_cols
 
-# Cấu hình trang
-st.set_page_config(page_title="Severity Prediction", layout="wide", page_icon="🎯")
+st.set_page_config(page_title="Severity Prediction", layout="wide")
 
 try:
-    model = load_traffic_model()
+    model, train_cols = load_traffic_model()
 except Exception as e:
-    st.error(f"❌ Lỗi tải mô hình: {e}")
+    st.error(f"❌ Lỗi: {e}")
     st.stop()
 
 # =========================================
-# 3. GIAO DIỆN NHẬP LIỆU
+# 3. GIAO DIỆN FORM (Giữ nguyên các ô nhập)
 # =========================================
-st.title("🎯 Traffic Accident Severity Predictor")
-st.markdown("Nhập thông tin bên dưới để dự đoán mức độ nghiêm trọng của tai nạn (**Severity 1-4**).")
+st.title("🎯 Accident Severity Predictor")
 
-with st.form("prediction_form"):
-    st.subheader("📍 Vị trí & Thời gian")
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        state = st.text_input("Bang (State)", value="CA")
-        city = st.text_input("Thành phố (City)", value="Los Angeles")
-    with col2:
-        month = st.slider("Tháng", 1, 12, 6)
-        hour = st.slider("Giờ trong ngày", 0, 23, 12)
-    with col3:
-        day_of_week = st.selectbox("Thứ trong tuần", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
-        day_night = st.selectbox("Thời điểm", ["Day", "Night"])
-
-    st.subheader("🛣️ Điều kiện đường xá & Thời tiết")
-    col4, col5, col6 = st.columns(3)
-    with col4:
-        weather_cond = st.selectbox("Thời tiết", ["Clear", "Cloudy", "Rain", "Snow", "Fog", "Thunderstorm"])
-    with col5:
-        junction = st.checkbox("Gần nút giao (Junction)")
-    with col6:
-        traffic_signal = st.checkbox("Có đèn giao thông")
-
-    submitted = st.form_submit_button("🚀 Dự đoán kết quả", type="primary", use_container_width=True)
+with st.form("input_form"):
+    c1, c2 = st.columns(2)
+    with c1:
+        state = st.text_input("State", "CA")
+        city = st.text_input("City", "Los Angeles")
+        weather = st.selectbox("Weather", ["Clear", "Cloudy", "Rain", "Snow", "Fog"])
+    with c2:
+        hour = st.slider("Hour", 0, 23, 12)
+        month = st.slider("Month", 1, 12, 1)
+        day_night = st.selectbox("Day/Night", ["Day", "Night"])
+    
+    # Thêm checkbox cho các tính năng logic
+    junction = st.checkbox("Near Junction")
+    signal = st.checkbox("Traffic Signal")
+    
+    submitted = st.form_submit_button("🚀 Predict", use_container_width=True)
 
 # =========================================
-# 4. XỬ LÝ DỰ ĐOÁN
+# 4. XỬ LÝ DỮ LIỆU THÔNG MINH
 # =========================================
 if submitted:
-    with st.spinner("Đang phân tích dữ liệu..."):
-        # Chuyển đổi Thứ sang số (phải khớp với lúc Train)
-        weekday_map = {"Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3, "Friday": 4, "Saturday": 5, "Sunday": 6}
+    # Bước A: Tạo DataFrame trống với ĐÚNG số cột lúc train (19 hoặc bao nhiêu cũng được)
+    # Điền giá trị mặc định là 0 hoặc NaN
+    input_df = pd.DataFrame(columns=train_cols)
+    input_df.loc[0] = np.nan 
+
+    # Bước B: Điền các giá trị từ Form vào đúng cột
+    # Nếu cột nào trong Form không có trong train_cols, nó sẽ bị bỏ qua
+    # Nếu cột nào trong train_cols không có trong Form, nó sẽ mang giá trị NaN/0 (Model vẫn chạy được)
+    input_df['State'] = state
+    input_df['City'] = city
+    input_df['Weather_Condition'] = weather
+    input_df['Hour'] = hour
+    input_df['Month'] = month
+    input_df['Weekday'] = 0 # Mặc định thứ 2 nếu thiếu
+    input_df['Sunrise_Sunset'] = day_night
+    input_df['Junction'] = junction
+    input_df['Traffic_Signal'] = signal
+
+    # Bước C: Xử lý các cột số còn thiếu (Nhiệt độ, Độ ẩm...) bằng giá trị trung bình
+    input_df = input_df.fillna(0) 
+
+    try:
+        # Bước D: Dự đoán
+        result = model.predict(input_df)[0]
         
-        # Tạo DataFrame đầu vào đúng cấu trúc cột của Pipeline
-        input_df = pd.DataFrame([{
-            'State': state,
-            'City': city,
-            'Weather_Condition': weather_cond,
-            'Traffic_Signal': traffic_signal,
-            'Junction': junction,
-            'Hour': hour,
-            'Month': month,
-            'Weekday': weekday_map[day_of_week],
-            'Sunrise_Sunset': day_night
-        }])
+        st.success(f"### Kết quả dự đoán: Severity Level {int(result)}")
         
-        try:
-            # Dự đoán
-            prediction = model.predict(input_df)[0]
-            
-            # Hiển thị kết quả nổi bật
-            st.markdown("---")
-            st.success("✅ Phân tích hoàn tất!")
-            
-            color = "#FF4B4B" if prediction >= 3 else "#FFA500" if prediction == 2 else "#28a745"
-            st.markdown(f"""
-                <div style="text-align: center; padding: 30px; background-color: #f8f9fa; border-radius: 15px; border: 3px solid {color};">
-                    <h2 style="color: #555; margin-bottom: 10px;">Mức độ nghiêm trọng dự báo</h2>
-                    <h1 style="color: {color}; font-size: 72px; margin: 0;">CẤP ĐỘ {int(prediction)}</h1>
-                </div>
-            """, unsafe_allow_html=True)
-            
-        except Exception as e:
-            st.error(f"⚠️ Đã xảy ra lỗi khi dự đoán: {e}")
-            st.info("Mẹo: Đảm bảo file .pkl đã được xuất lại sau khi bạn tách file transformers.py")
+    except Exception as e:
+        st.error(f"⚠️ Lỗi kỹ thuật: {e}")
+        st.info(f"Model yêu cầu các cột: {train_cols}")
