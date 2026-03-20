@@ -6,3 +6,4 @@ pyarrow
 setuptools
 joblib
 scikit-learn
+lightgbm
