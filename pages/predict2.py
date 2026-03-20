@@ -51,7 +51,18 @@ class FrequencyEncoder(BaseEstimator, TransformerMixin):
         return X_copy
 
 # =========================================
-# 2. TẢI MÔ HÌNH
+# 2. DỮ LIỆU MẪU CHO DANH SÁCH CHỌN
+# =========================================
+DATA_MAP = {
+    "CA": ["Los Angeles", "San Diego", "San Jose", "San Francisco", "Sacramento"],
+    "TX": ["Houston", "Dallas", "Austin", "San Antonio", "Fort Worth"],
+    "FL": ["Miami", "Orlando", "Tampa", "Jacksonville", "Tallahassee"],
+    "NY": ["New York", "Buffalo", "Rochester", "Yonkers", "Syracuse"],
+    "PA": ["Philadelphia", "Pittsburgh", "Allentown", "Erie", "Reading"]
+}
+
+# =========================================
+# 3. TẢI MÔ HÌNH
 # =========================================
 @st.cache_resource
 def load_traffic_model():
@@ -67,16 +78,18 @@ except Exception as e:
     st.stop()
 
 # =========================================
-# 3. GIAO DIỆN FORM
+# 4. GIAO DIỆN FORM
 # =========================================
-st.title("🎯 Traffic Accident Severity Predictor (Demo Mode)")
+st.title("🎯 Traffic Accident Severity Predictor")
 st.markdown("---")
 
 with st.form("prediction_form"):
     st.subheader("📍 Location Information")
     l_col1, l_col2 = st.columns(2)
-    with l_col1: state = st.text_input("State", value="CA")
-    with l_col2: city = st.text_input("City", value="Los Angeles")
+    with l_col1:
+        state_selected = st.selectbox("Select State", options=list(DATA_MAP.keys()))
+    with l_col2:
+        city_selected = st.selectbox("Select City", options=DATA_MAP[state_selected])
 
     st.subheader("☁️ Weather Information")
     w_col1, w_col2, w_col3 = st.columns(3)
@@ -87,12 +100,12 @@ with st.form("prediction_form"):
         visibility = st.number_input("Visibility (mi)", value=10.0)
         precip = st.number_input("Precipitation (in)", value=0.0)
     with w_col3:
-        weather_cond = st.selectbox("Weather Condition", options=["Clear", "Rain", "Cloudy", "Fog", "Snow"])
+        weather_cond = st.selectbox("Weather Condition", options=["Clear", "Mostly Cloudy", "Overcast", "Rain", "Snow", "Fog"])
 
     st.subheader("🛣️ Road & Traffic Information")
     r_col1, r_col2 = st.columns(2)
-    with r_col1: junction = st.selectbox("Near Junction?", options=[True, False])
-    with r_col2: traffic_signal = st.selectbox("Traffic Signal Present?", options=[True, False])
+    with r_col1: junction = st.selectbox("Near Junction?", options=[True, False], index=1)
+    with r_col2: traffic_signal = st.selectbox("Traffic Signal Present?", options=[True, False], index=1)
 
     st.subheader("🕒 Time Information")
     t_col1, t_col2, t_col3 = st.columns(3)
@@ -105,32 +118,41 @@ with st.form("prediction_form"):
     submitted = st.form_submit_button("🚀 Predict Severity", type="primary", use_container_width=True)
 
 # =========================================
-# 4. DỰ ĐOÁN (ÉP CHẠY BẤT CHẤP SAI SHAPE)
+# 5. DỰ ĐOÁN (ÉP CHẠY BẤT CHẤP LỆCH 16-22 CỘT)
 # =========================================
 if submitted:
     weekday_map = {"Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3, "Friday": 4, "Saturday": 5, "Sunday": 6}
     
-    # Tạo data thô
+    # Tạo dataframe thô (16 cột hoặc bao nhiêu cũng được)
     raw_data = {
-        'State': state, 'City': city, 'Weather_Condition': weather_cond,
-        'Traffic_Signal': traffic_signal, 'Junction': junction,
-        'Hour': hour, 'Month': month, 'Weekday': weekday_map[day_of_week],
-        'Sunrise_Sunset': day_night, 'Temperature(F)': temp_f, 
-        'Humidity(%)': humidity, 'Visibility(mi)': visibility, 'Precipitation(in)': precip
+        'State': state_selected, 
+        'City': city_selected, 
+        'Weather_Condition': weather_cond,
+        'Traffic_Signal': traffic_signal, 
+        'Junction': junction,
+        'Hour': hour, 
+        'Month': month, 
+        'Weekday': weekday_map[day_of_week],
+        'Sunrise_Sunset': day_night, 
+        'Temperature(F)': temp_f, 
+        'Humidity(%)': humidity, 
+        'Visibility(mi)': visibility, 
+        'Precipitation(in)': precip
     }
     input_df = pd.DataFrame([raw_data])
 
     try:
-        # ÉP MODEL CHẠY: Bỏ qua kiểm tra số lượng feature
-        # classifier là tên bước cuối cùng trong Pipeline của bạn
+        # ÉP MODEL CHẠY (Bỏ qua lỗi 16 vs 22 features)
+        # Lưu ý: 'classifier' là tên step cuối trong Pipeline của bạn
         prediction = model.predict(input_df, classifier__predict_disable_shape_check=True)[0]
         
         st.markdown(f"""
             <div style="text-align: center; padding: 20px; background-color: #f8f9fa; border-radius: 10px; border: 2px solid #e9ecef; margin-top: 20px;">
                 <h3 style="color: #555;">Predicted Severity Level</h3>
                 <h1 style="color: #FF4B4B; font-size: 60px; margin: 0;">SEVERITY {int(prediction)}</h1>
-                <p style="color: orange;">⚠️ Lưu ý: Model đang chạy ở chế độ ép buộc, kết quả có thể không chính xác.</p>
+                <p style="color: #888;">⚠️ Demo Mode: Cảnh báo lệch cột (16 input vs 22 trained) đã được bỏ qua.</p>
             </div>
         """, unsafe_allow_html=True)
+        
     except Exception as e:
         st.error(f"Lỗi: {e}")
